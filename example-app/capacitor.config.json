@@ -1,0 +1,10 @@
+{
+  "appId": "app.capgo.zebradatawedge.example",
+  "appName": "Zebra DataWedge Example",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
+  }
+}

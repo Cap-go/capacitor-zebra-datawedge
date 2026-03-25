@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@capgo/capacitor-zebra-datawedge Example</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Capgo plugin example</p>
+        <h1>Zebra DataWedge control panel</h1>
+        <p class="lead">
+          Use this app on a Zebra Android device to inspect DataWedge status, query the active profile, and trigger a
+          soft scan against your configured broadcast intent action.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="status-row">
+          <div>
+            <p class="label">DataWedge status</p>
+            <strong id="status-badge" class="badge">Loading</strong>
+          </div>
+          <button id="refresh-status" class="ghost">Refresh</button>
+        </div>
+
+        <label class="field">
+          <span class="label">Intent action</span>
+          <input id="intent-action" type="text" value="app.capgo.zebra.SCAN" />
+        </label>
+
+        <div class="actions">
+          <button id="soft-scan">Start soft scan</button>
+          <button id="get-active-profile" class="ghost">Get active profile</button>
+          <button id="get-version" class="ghost">Get version info</button>
+        </div>
+
+        <pre id="plugin-output">Loading plugin state...</pre>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
