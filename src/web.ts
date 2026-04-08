@@ -21,53 +21,54 @@ import type {
   ZebraScanResult,
 } from './definitions';
 
-const unavailable = () => {
+const unavailable = (...args: unknown[]) => {
+  void args;
   throw new Error('Zebra DataWedge is only available on Android devices with Zebra DataWedge installed.');
 };
 
 export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin {
-  cloneProfile(_options: CloneProfileOptions): Promise<void> {
-    return unavailable();
+  cloneProfile(options: CloneProfileOptions): Promise<void> {
+    return unavailable(options);
   }
 
-  createProfile(_options: CreateProfileOptions): Promise<void> {
-    return unavailable();
+  createProfile(options: CreateProfileOptions): Promise<void> {
+    return unavailable(options);
   }
 
-  deleteProfile(_options: DeleteProfileOptions): Promise<void> {
-    return unavailable();
+  deleteProfile(options: DeleteProfileOptions): Promise<void> {
+    return unavailable(options);
   }
 
-  importConfig(_options: ImportConfigOptions): Promise<void> {
-    return unavailable();
+  importConfig(options: ImportConfigOptions): Promise<void> {
+    return unavailable(options);
   }
 
-  renameProfile(_options: RenameProfileOptions): Promise<void> {
-    return unavailable();
+  renameProfile(options: RenameProfileOptions): Promise<void> {
+    return unavailable(options);
   }
 
   restoreConfig(): Promise<void> {
     return unavailable();
   }
 
-  setConfig(_options: SetConfigOptions): Promise<void> {
-    return unavailable();
+  setConfig(options: SetConfigOptions): Promise<void> {
+    return unavailable(options);
   }
 
-  setDisabledAppList(_options: SetDisabledAppListOptions): Promise<void> {
-    return unavailable();
+  setDisabledAppList(options: SetDisabledAppListOptions): Promise<void> {
+    return unavailable(options);
   }
 
-  setIgnoreDisabledProfiles(_options: IgnoreDisabledProfilesResult): Promise<void> {
-    return unavailable();
+  setIgnoreDisabledProfiles(options: IgnoreDisabledProfilesResult): Promise<void> {
+    return unavailable(options);
   }
 
-  registerForNotification(_options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void> {
-    return unavailable();
+  registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void> {
+    return unavailable(options);
   }
 
-  unRegisterForNotification(_options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void> {
-    return unavailable();
+  unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void> {
+    return unavailable(options);
   }
 
   enumerateScanners(): Promise<{ scanners: never[] }> {
@@ -78,12 +79,12 @@ export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin
     return unavailable();
   }
 
-  getAssociatedApps(_options: { profileName: string }): Promise<{ appList: never[] }> {
-    return unavailable();
+  getAssociatedApps(options: { profileName: string }): Promise<{ appList: never[] }> {
+    return unavailable(options);
   }
 
-  getConfig(_options: GetConfigOptions): Promise<ZebraProfileConfiguration> {
-    return unavailable();
+  getConfig(options: GetConfigOptions): Promise<ZebraProfileConfiguration> {
+    return unavailable(options);
   }
 
   getDatawedgeStatus(): Promise<DataWedgeStatusResult> {
@@ -130,40 +131,40 @@ export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin
     return unavailable();
   }
 
-  notify(_options: DataWedgeNotifyOptions): Promise<void> {
-    return unavailable();
+  notify(options: DataWedgeNotifyOptions): Promise<void> {
+    return unavailable(options);
   }
 
   resetDefaultProfile(): Promise<void> {
     return unavailable();
   }
 
-  setDefaultProfile(_options: { profileName: string }): Promise<void> {
-    return unavailable();
+  setDefaultProfile(options: { profileName: string }): Promise<void> {
+    return unavailable(options);
   }
 
-  setReportingOptions(_options: ReportingOptions): Promise<void> {
-    return unavailable();
+  setReportingOptions(options: ReportingOptions): Promise<void> {
+    return unavailable(options);
   }
 
   softRfidTrigger(): Promise<ZebraScanResult> {
     return unavailable();
   }
 
-  softScanTrigger(_options: { intentAction: string }): Promise<ZebraScanResult> {
-    return unavailable();
+  softScanTrigger(options: { intentAction: string }): Promise<ZebraScanResult> {
+    return unavailable(options);
   }
 
-  switchScanner(_options: { scannerIndex?: string; scannerIdentifier?: string }): Promise<void> {
-    return unavailable();
+  switchScanner(options: { scannerIndex?: string; scannerIdentifier?: string }): Promise<void> {
+    return unavailable(options);
   }
 
-  switchScannerParams(_options: SwitchScannerParamsOptions): Promise<void> {
-    return unavailable();
+  switchScannerParams(options: SwitchScannerParamsOptions): Promise<void> {
+    return unavailable(options);
   }
 
-  switchToProfile(_options: { profileName: string }): Promise<void> {
-    return unavailable();
+  switchToProfile(options: { profileName: string }): Promise<void> {
+    return unavailable(options);
   }
 
   async getPluginVersion(): Promise<PluginVersionResult> {
