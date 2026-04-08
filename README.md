@@ -118,47 +118,47 @@ console.log(result);
 
 <docgen-index>
 
-- [`cloneProfile(...)`](#cloneprofile)
-- [`createProfile(...)`](#createprofile)
-- [`deleteProfile(...)`](#deleteprofile)
-- [`importConfig(...)`](#importconfig)
-- [`renameProfile(...)`](#renameprofile)
-- [`restoreConfig()`](#restoreconfig)
-- [`setConfig(...)`](#setconfig)
-- [`setDisabledAppList(...)`](#setdisabledapplist)
-- [`setIgnoreDisabledProfiles(...)`](#setignoredisabledprofiles)
-- [`registerForNotification(...)`](#registerfornotification)
-- [`unRegisterForNotification(...)`](#unregisterfornotification)
-- [`enumerateScanners()`](#enumeratescanners)
-- [`getActiveProfile()`](#getactiveprofile)
-- [`getAssociatedApps(...)`](#getassociatedapps)
-- [`getConfig(...)`](#getconfig)
-- [`getDatawedgeStatus()`](#getdatawedgestatus)
-- [`getDisabledAppList()`](#getdisabledapplist)
-- [`getIgnoreDisabledProfiles()`](#getignoredisabledprofiles)
-- [`getProfilesList()`](#getprofileslist)
-- [`getScannerStatus()`](#getscannerstatus)
-- [`getVersionInfo()`](#getversioninfo)
-- [`disableDatawedge()`](#disabledatawedge)
-- [`disableScannerInput()`](#disablescannerinput)
-- [`enableDatawedge()`](#enabledatawedge)
-- [`enableScannerInput()`](#enablescannerinput)
-- [`enumerateTriggers()`](#enumeratetriggers)
-- [`notify(...)`](#notify)
-- [`resetDefaultProfile()`](#resetdefaultprofile)
-- [`setDefaultProfile(...)`](#setdefaultprofile)
-- [`setReportingOptions(...)`](#setreportingoptions)
-- [`softRfidTrigger()`](#softrfidtrigger)
-- [`softScanTrigger(...)`](#softscantrigger)
-- [`switchScanner(...)`](#switchscanner)
-- [`switchScannerParams(...)`](#switchscannerparams)
-- [`switchToProfile(...)`](#switchtoprofile)
-- [`getPluginVersion()`](#getpluginversion)
-- [`addListener('scan', ...)`](#addlistenerscan-)
-- [`addListener('notification', ...)`](#addlistenernotification-)
-- [Interfaces](#interfaces)
-- [Type Aliases](#type-aliases)
-- [Enums](#enums)
+* [`cloneProfile(...)`](#cloneprofile)
+* [`createProfile(...)`](#createprofile)
+* [`deleteProfile(...)`](#deleteprofile)
+* [`importConfig(...)`](#importconfig)
+* [`renameProfile(...)`](#renameprofile)
+* [`restoreConfig()`](#restoreconfig)
+* [`setConfig(...)`](#setconfig)
+* [`setDisabledAppList(...)`](#setdisabledapplist)
+* [`setIgnoreDisabledProfiles(...)`](#setignoredisabledprofiles)
+* [`registerForNotification(...)`](#registerfornotification)
+* [`unRegisterForNotification(...)`](#unregisterfornotification)
+* [`enumerateScanners()`](#enumeratescanners)
+* [`getActiveProfile()`](#getactiveprofile)
+* [`getAssociatedApps(...)`](#getassociatedapps)
+* [`getConfig(...)`](#getconfig)
+* [`getDatawedgeStatus()`](#getdatawedgestatus)
+* [`getDisabledAppList()`](#getdisabledapplist)
+* [`getIgnoreDisabledProfiles()`](#getignoredisabledprofiles)
+* [`getProfilesList()`](#getprofileslist)
+* [`getScannerStatus()`](#getscannerstatus)
+* [`getVersionInfo()`](#getversioninfo)
+* [`disableDatawedge()`](#disabledatawedge)
+* [`disableScannerInput()`](#disablescannerinput)
+* [`enableDatawedge()`](#enabledatawedge)
+* [`enableScannerInput()`](#enablescannerinput)
+* [`enumerateTriggers()`](#enumeratetriggers)
+* [`notify(...)`](#notify)
+* [`resetDefaultProfile()`](#resetdefaultprofile)
+* [`setDefaultProfile(...)`](#setdefaultprofile)
+* [`setReportingOptions(...)`](#setreportingoptions)
+* [`softRfidTrigger()`](#softrfidtrigger)
+* [`softScanTrigger(...)`](#softscantrigger)
+* [`switchScanner(...)`](#switchscanner)
+* [`switchScannerParams(...)`](#switchscannerparams)
+* [`switchToProfile(...)`](#switchtoprofile)
+* [`getPluginVersion()`](#getpluginversion)
+* [`addListener('scan', ...)`](#addlistenerscan-)
+* [`addListener('notification', ...)`](#addlistenernotification-)
+* [Interfaces](#interfaces)
+* [Type Aliases](#type-aliases)
+* [Enums](#enums)
 
 </docgen-index>
 
@@ -175,7 +175,8 @@ cloneProfile(options: CloneProfileOptions) => Promise<void>
 | ------------- | ------------------------------------------------------------------- |
 | **`options`** | <code><a href="#cloneprofileoptions">CloneProfileOptions</a></code> |
 
----
+--------------------
+
 
 ### createProfile(...)
 
@@ -187,7 +188,8 @@ createProfile(options: CreateProfileOptions) => Promise<void>
 | ------------- | --------------------------------------------------------------------- |
 | **`options`** | <code><a href="#createprofileoptions">CreateProfileOptions</a></code> |
 
----
+--------------------
+
 
 ### deleteProfile(...)
 
@@ -199,7 +201,8 @@ deleteProfile(options: DeleteProfileOptions) => Promise<void>
 | ------------- | --------------------------------------------------------------------- |
 | **`options`** | <code><a href="#deleteprofileoptions">DeleteProfileOptions</a></code> |
 
----
+--------------------
+
 
 ### importConfig(...)
 
@@ -211,7 +214,8 @@ importConfig(options: ImportConfigOptions) => Promise<void>
 | ------------- | ------------------------------------------------------------------- |
 | **`options`** | <code><a href="#importconfigoptions">ImportConfigOptions</a></code> |
 
----
+--------------------
+
 
 ### renameProfile(...)
 
@@ -223,7 +227,8 @@ renameProfile(options: RenameProfileOptions) => Promise<void>
 | ------------- | --------------------------------------------------------------------- |
 | **`options`** | <code><a href="#renameprofileoptions">RenameProfileOptions</a></code> |
 
----
+--------------------
+
 
 ### restoreConfig()
 
@@ -231,7 +236,8 @@ renameProfile(options: RenameProfileOptions) => Promise<void>
 restoreConfig() => Promise<void>
 ```
 
----
+--------------------
+
 
 ### setConfig(...)
 
@@ -243,7 +249,8 @@ setConfig(options: SetConfigOptions) => Promise<void>
 | ------------- | ------------------------------------------------------------- |
 | **`options`** | <code><a href="#setconfigoptions">SetConfigOptions</a></code> |
 
----
+--------------------
+
 
 ### setDisabledAppList(...)
 
@@ -255,7 +262,8 @@ setDisabledAppList(options: SetDisabledAppListOptions) => Promise<void>
 | ------------- | ------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#setdisabledapplistoptions">SetDisabledAppListOptions</a></code> |
 
----
+--------------------
+
 
 ### setIgnoreDisabledProfiles(...)
 
@@ -267,7 +275,8 @@ setIgnoreDisabledProfiles(options: IgnoreDisabledProfilesResult) => Promise<void
 | ------------- | ------------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#ignoredisabledprofilesresult">IgnoreDisabledProfilesResult</a></code> |
 
----
+--------------------
+
 
 ### registerForNotification(...)
 
@@ -279,7 +288,8 @@ registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#omit">Omit</a>&lt;<a href="#registerfornotificationoptions">RegisterForNotificationOptions</a>, 'callback'&gt;</code> |
 
----
+--------------------
+
 
 ### unRegisterForNotification(...)
 
@@ -291,7 +301,8 @@ unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callbac
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#omit">Omit</a>&lt;<a href="#registerfornotificationoptions">RegisterForNotificationOptions</a>, 'callback'&gt;</code> |
 
----
+--------------------
+
 
 ### enumerateScanners()
 
@@ -301,7 +312,8 @@ enumerateScanners() => Promise<{ scanners: ZebraDeviceScanner[]; }>
 
 **Returns:** <code>Promise&lt;{ scanners: ZebraDeviceScanner[]; }&gt;</code>
 
----
+--------------------
+
 
 ### getActiveProfile()
 
@@ -311,7 +323,8 @@ getActiveProfile() => Promise<{ profileName: string; }>
 
 **Returns:** <code>Promise&lt;{ profileName: string; }&gt;</code>
 
----
+--------------------
+
 
 ### getAssociatedApps(...)
 
@@ -325,7 +338,8 @@ getAssociatedApps(options: { profileName: string; }) => Promise<{ appList: DataW
 
 **Returns:** <code>Promise&lt;{ appList: DataWedgeAppConfig[]; }&gt;</code>
 
----
+--------------------
+
 
 ### getConfig(...)
 
@@ -339,7 +353,8 @@ getConfig(options: GetConfigOptions) => Promise<ZebraProfileConfiguration>
 
 **Returns:** <code>Promise&lt;<a href="#zebraprofileconfiguration">ZebraProfileConfiguration</a>&gt;</code>
 
----
+--------------------
+
 
 ### getDatawedgeStatus()
 
@@ -349,7 +364,8 @@ getDatawedgeStatus() => Promise<DataWedgeStatusResult>
 
 **Returns:** <code>Promise&lt;<a href="#datawedgestatusresult">DataWedgeStatusResult</a>&gt;</code>
 
----
+--------------------
+
 
 ### getDisabledAppList()
 
@@ -359,7 +375,8 @@ getDisabledAppList() => Promise<{ appList: DataWedgeAppConfig[]; }>
 
 **Returns:** <code>Promise&lt;{ appList: DataWedgeAppConfig[]; }&gt;</code>
 
----
+--------------------
+
 
 ### getIgnoreDisabledProfiles()
 
@@ -369,7 +386,8 @@ getIgnoreDisabledProfiles() => Promise<IgnoreDisabledProfilesResult>
 
 **Returns:** <code>Promise&lt;<a href="#ignoredisabledprofilesresult">IgnoreDisabledProfilesResult</a>&gt;</code>
 
----
+--------------------
+
 
 ### getProfilesList()
 
@@ -379,7 +397,8 @@ getProfilesList() => Promise<{ profiles: string[]; }>
 
 **Returns:** <code>Promise&lt;{ profiles: string[]; }&gt;</code>
 
----
+--------------------
+
 
 ### getScannerStatus()
 
@@ -389,7 +408,8 @@ getScannerStatus() => Promise<{ status: ScannerStatus | string; }>
 
 **Returns:** <code>Promise&lt;{ status: string; }&gt;</code>
 
----
+--------------------
+
 
 ### getVersionInfo()
 
@@ -399,7 +419,8 @@ getVersionInfo() => Promise<ZebraDeviceVersionInfo>
 
 **Returns:** <code>Promise&lt;<a href="#zebradeviceversioninfo">ZebraDeviceVersionInfo</a>&gt;</code>
 
----
+--------------------
+
 
 ### disableDatawedge()
 
@@ -407,7 +428,8 @@ getVersionInfo() => Promise<ZebraDeviceVersionInfo>
 disableDatawedge() => Promise<void>
 ```
 
----
+--------------------
+
 
 ### disableScannerInput()
 
@@ -415,7 +437,8 @@ disableDatawedge() => Promise<void>
 disableScannerInput() => Promise<void>
 ```
 
----
+--------------------
+
 
 ### enableDatawedge()
 
@@ -423,7 +446,8 @@ disableScannerInput() => Promise<void>
 enableDatawedge() => Promise<void>
 ```
 
----
+--------------------
+
 
 ### enableScannerInput()
 
@@ -431,7 +455,8 @@ enableDatawedge() => Promise<void>
 enableScannerInput() => Promise<void>
 ```
 
----
+--------------------
+
 
 ### enumerateTriggers()
 
@@ -441,7 +466,8 @@ enumerateTriggers() => Promise<{ triggers: string[]; }>
 
 **Returns:** <code>Promise&lt;{ triggers: string[]; }&gt;</code>
 
----
+--------------------
+
 
 ### notify(...)
 
@@ -453,7 +479,8 @@ notify(options: DataWedgeNotifyOptions) => Promise<void>
 | ------------- | ------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#datawedgenotifyoptions">DataWedgeNotifyOptions</a></code> |
 
----
+--------------------
+
 
 ### resetDefaultProfile()
 
@@ -461,7 +488,8 @@ notify(options: DataWedgeNotifyOptions) => Promise<void>
 resetDefaultProfile() => Promise<void>
 ```
 
----
+--------------------
+
 
 ### setDefaultProfile(...)
 
@@ -473,7 +501,8 @@ setDefaultProfile(options: { profileName: string; }) => Promise<void>
 | ------------- | ------------------------------------- |
 | **`options`** | <code>{ profileName: string; }</code> |
 
----
+--------------------
+
 
 ### setReportingOptions(...)
 
@@ -485,7 +514,8 @@ setReportingOptions(options: ReportingOptions) => Promise<void>
 | ------------- | ------------------------------------------------------------- |
 | **`options`** | <code><a href="#reportingoptions">ReportingOptions</a></code> |
 
----
+--------------------
+
 
 ### softRfidTrigger()
 
@@ -495,7 +525,8 @@ softRfidTrigger() => Promise<ZebraScanResult>
 
 **Returns:** <code>Promise&lt;<a href="#zebrascanresult">ZebraScanResult</a>&gt;</code>
 
----
+--------------------
+
 
 ### softScanTrigger(...)
 
@@ -509,7 +540,8 @@ softScanTrigger(options: { intentAction: string; }) => Promise<ZebraScanResult>
 
 **Returns:** <code>Promise&lt;<a href="#zebrascanresult">ZebraScanResult</a>&gt;</code>
 
----
+--------------------
+
 
 ### switchScanner(...)
 
@@ -521,7 +553,8 @@ switchScanner(options: { scannerIndex?: string; scannerIdentifier?: ScannerIdent
 | ------------- | --------------------------------------------------------------------------------------------------------------- |
 | **`options`** | <code>{ scannerIndex?: string; scannerIdentifier?: <a href="#scanneridentifier">ScannerIdentifier</a>; }</code> |
 
----
+--------------------
+
 
 ### switchScannerParams(...)
 
@@ -533,7 +566,8 @@ switchScannerParams(options: SwitchScannerParamsOptions) => Promise<void>
 | ------------- | --------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#switchscannerparamsoptions">SwitchScannerParamsOptions</a></code> |
 
----
+--------------------
+
 
 ### switchToProfile(...)
 
@@ -545,7 +579,8 @@ switchToProfile(options: { profileName: string; }) => Promise<void>
 | ------------- | ------------------------------------- |
 | **`options`** | <code>{ profileName: string; }</code> |
 
----
+--------------------
+
 
 ### getPluginVersion()
 
@@ -555,7 +590,8 @@ getPluginVersion() => Promise<PluginVersionResult>
 
 **Returns:** <code>Promise&lt;<a href="#pluginversionresult">PluginVersionResult</a>&gt;</code>
 
----
+--------------------
+
 
 ### addListener('scan', ...)
 
@@ -570,7 +606,8 @@ addListener(eventName: 'scan', listenerFunc: (event: ZebraScanResult) => void) =
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
----
+--------------------
+
 
 ### addListener('notification', ...)
 
@@ -585,9 +622,11 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
----
+--------------------
+
 
 ### Interfaces
+
 
 #### CloneProfileOptions
 
@@ -596,17 +635,20 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`destProfileName`**   | <code>string</code> |
 | **`sourceProfileName`** | <code>string</code> |
 
+
 #### CreateProfileOptions
 
 | Prop              | Type                |
 | ----------------- | ------------------- |
 | **`profileName`** | <code>string</code> |
 
+
 #### DeleteProfileOptions
 
 | Prop               | Type                  |
 | ------------------ | --------------------- |
 | **`profileNames`** | <code>string[]</code> |
+
 
 #### ImportConfigOptions
 
@@ -615,12 +657,14 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`fileList`**   | <code>string[]</code> |
 | **`folderPath`** | <code>string</code>   |
 
+
 #### RenameProfileOptions
 
 | Prop                     | Type                |
 | ------------------------ | ------------------- |
 | **`currentProfileName`** | <code>string</code> |
 | **`newProfileName`**     | <code>string</code> |
+
 
 #### SetConfigOptions
 
@@ -632,12 +676,14 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`profileEnabled`** | <code>boolean</code>                                                |
 | **`profileName`**    | <code>string</code>                                                 |
 
+
 #### DataWedgeAppConfig
 
 | Prop               | Type                  |
 | ------------------ | --------------------- |
 | **`activityList`** | <code>string[]</code> |
 | **`packageName`**  | <code>string</code>   |
+
 
 #### DataWedgePluginConfig
 
@@ -648,7 +694,9 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`pluginName`**       | <code><a href="#datawedgeplugin">DataWedgePlugin</a></code>                     |
 | **`resetConfig`**      | <code>boolean</code>                                                            |
 
+
 #### DataWedgePluginParameters
+
 
 #### SetDisabledAppListOptions
 
@@ -657,11 +705,13 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`appList`**    | <code>DataWedgeAppConfig[]</code>                                   |
 | **`configMode`** | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> |
 
+
 #### IgnoreDisabledProfilesResult
 
 | Prop          | Type                 |
 | ------------- | -------------------- |
 | **`enabled`** | <code>boolean</code> |
+
 
 #### RegisterForNotificationOptions
 
@@ -671,6 +721,7 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`callback`**         | <code>((notification: <a href="#zebranotificationevent">ZebraNotificationEvent</a>) =&gt; void)</code> |
 | **`intentAction`**     | <code>string</code>                                                                                    |
 | **`notificationType`** | <code><a href="#datawedgenotificationtype">DataWedgeNotificationType</a></code>                        |
+
 
 #### ZebraNotificationEvent
 
@@ -682,6 +733,7 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`status`**           | <code>string</code>                                              |
 | **`raw`**              | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> |
 
+
 #### ZebraDeviceScanner
 
 | Prop                  | Type                 |
@@ -690,6 +742,7 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`id`**              | <code>string</code>  |
 | **`index`**           | <code>number</code>  |
 | **`name`**            | <code>string</code>  |
+
 
 #### ZebraProfileConfiguration
 
@@ -700,12 +753,14 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`profileEnabled`**   | <code>boolean</code>                 |
 | **`profileName`**      | <code>string</code>                  |
 
+
 #### GetConfigOptions
 
 | Prop                | Type                               |
 | ------------------- | ---------------------------------- |
 | **`pluginConfigs`** | <code>PluginConfigOptions[]</code> |
 | **`profileName`**   | <code>string</code>                |
+
 
 #### PluginConfigOptions
 
@@ -714,11 +769,13 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`outputPluginName`** | <code><a href="#datawedgeplugin">DataWedgePlugin</a></code> |
 | **`pluginName`**       | <code><a href="#datawedgeplugin">DataWedgePlugin</a></code> |
 
+
 #### DataWedgeStatusResult
 
 | Prop            | Type                 |
 | --------------- | -------------------- |
 | **`isEnabled`** | <code>boolean</code> |
+
 
 #### ZebraDeviceVersionInfo
 
@@ -730,12 +787,14 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`scannerFirmwareVersions`** | <code>string[]</code> |
 | **`simulScanVersion`**        | <code>string</code>   |
 
+
 #### DataWedgeNotifyOptions
 
 | Prop                       | Type                  |
 | -------------------------- | --------------------- |
 | **`deviceIdentifier`**     | <code>string</code>   |
 | **`notificationSettings`** | <code>number[]</code> |
+
 
 #### ReportingOptions
 
@@ -744,6 +803,7 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`reportingEnabled`**             | <code>boolean</code>                      |
 | **`reportingGenerateOption`**      | <code>'manual' \| 'auto' \| 'both'</code> |
 | **`reportingShowForManualImport`** | <code>boolean</code>                      |
+
 
 #### ZebraScanResult
 
@@ -755,6 +815,7 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`labelType`**    | <code>string</code> |
 | **`source`**       | <code>string</code> |
 
+
 #### SwitchScannerParamsOptions
 
 | Prop                    | Type                                                                            |
@@ -762,11 +823,13 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`scannerIdentifier`** | <code><a href="#scanneridentifier">ScannerIdentifier</a></code>                 |
 | **`scannerParams`**     | <code><a href="#datawedgepluginparameters">DataWedgePluginParameters</a></code> |
 
+
 #### PluginVersionResult
 
 | Prop          | Type                |
 | ------------- | ------------------- |
 | **`version`** | <code>string</code> |
+
 
 #### PluginListenerHandle
 
@@ -774,23 +837,23 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | ------------ | ----------------------------------------- |
 | **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
 
+
 ### Type Aliases
+
 
 #### Omit
 
 Construct a type with the properties of T except for those in type K.
 
-<code>
-  <a href="#pick">Pick</a>&lt;T, <a href="#exclude">Exclude</a>&lt;keyof T, K&gt;&gt;
-</code>
+<code><a href="#pick">Pick</a>&lt;T, <a href="#exclude">Exclude</a>&lt;keyof T, K&gt;&gt;</code>
+
 
 #### Pick
 
 From T, pick a set of properties whose keys are in the union K
 
-<code>{
- [P in K]: T[P];
- }</code>
+<code>{ [P in K]: T[P]; }</code>
+
 
 #### Exclude
 
@@ -798,15 +861,16 @@ From T, pick a set of properties whose keys are in the union K
 
 <code>T extends U ? never : T</code>
 
+
 #### Record
 
 Construct a type with a set of properties K of type T
 
-<code>{
- [P in K]: T;
- }</code>
+<code>{ [P in K]: T; }</code>
+
 
 ### Enums
+
 
 #### DataWedgeConfigMode
 
@@ -816,6 +880,7 @@ Construct a type with a set of properties K of type T
 | **`OVERWRITE`**           | <code>'OVERWRITE'</code>           |
 | **`REMOVE`**              | <code>'REMOVE'</code>              |
 | **`UPDATE`**              | <code>'UPDATE'</code>              |
+
 
 #### DataWedgePlugin
 
@@ -835,6 +900,7 @@ Construct a type with a set of properties K of type T
 | **`TOKENS`**    | <code>'TOKENS'</code>    |
 | **`VOICE`**     | <code>'VOICE'</code>     |
 
+
 #### ScannerStatus
 
 | Members            | Value                       |
@@ -846,6 +912,7 @@ Construct a type with a set of properties K of type T
 | **`SCANNING`**     | <code>'SCANNING'</code>     |
 | **`WAITING`**      | <code>'WAITING'</code>      |
 
+
 #### DataWedgeNotificationType
 
 | Members                    | Value                               |
@@ -853,6 +920,7 @@ Construct a type with a set of properties K of type T
 | **`CONFIGURATION_UPDATE`** | <code>'CONFIGURATION_UPDATE'</code> |
 | **`PROFILE_SWITCH`**       | <code>'PROFILE_SWITCH'</code>       |
 | **`SCANNER_STATUS`**       | <code>'SCANNER_STATUS'</code>       |
+
 
 #### ScannerIdentifier
 
