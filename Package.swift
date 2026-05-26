@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "CapgoCapacitorZebraDataWedge",
+    name: "CapgoCapacitorZebraDatawedge",
     platforms: [.iOS(.v15)],
     products: [
         .library(
-            name: "CapgoCapacitorZebraDataWedge",
+            name: "CapgoCapacitorZebraDatawedge",
             targets: ["ZebraDataWedgePlugin"])
     ],
     dependencies: [
