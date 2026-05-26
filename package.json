@@ -44,7 +44,7 @@
     "eslint": "eslint . --ext .ts",
     "prettier": "prettier-pretty-check \"**/*.{css,html,ts,js,java,json,md}\" --plugin=prettier-plugin-java",
     "swiftlint": "node-swiftlint",
-    "docgen": "docgen --api ZebraDataWedgePlugin --output-readme README.md --output-json dist/docs.json",
+    "docgen": "docgen --api ZebraDataWedgePlugin --output-readme README.md --output-json dist/docs.json && prettier --write README.md",
     "build": "bun run clean && bun run docgen && tsc && rollup -c rollup.config.mjs",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
