@@ -4,7 +4,7 @@ import pkg from './package.json';
 
 const config: CapacitorConfig = {
   appId: 'app.capgo.zebradatawedge.example',
-  appName: 'Zebra DataWedge Example',
+  appName: '@capgo/capacitor-zebra-datawedge',
   webDir: 'dist',
   plugins: {
     SplashScreen: {
