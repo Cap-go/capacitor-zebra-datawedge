@@ -27,7 +27,9 @@ public final class ZebraDataWedge {
     public static final String EXTRA_SCAN_SOURCE = "com.symbol.datawedge.source";
     public static final String EXTRA_SCAN_DECODE_MODE = "com.symbol.datawedge.decode_mode";
     public static final String EXTRA_NOTIFICATION = "com.symbol.datawedge.api.NOTIFICATION";
-
+    public static final String EXTRA_APPLICATION_NAME = "com.symbol.datawedge.api.APPLICATION_NAME";
+    public static final String EXTRA_NOTIFICATION_TYPE = "com.symbol.datawedge.api.NOTIFICATION_TYPE";
+    
     public static final String EXTRA_SEND_RESULT = "SEND_RESULT";
     public static final String EXTRA_COMMAND_IDENTIFIER = "COMMAND_IDENTIFIER";
     public static final String EXTRA_COMMAND = "COMMAND";
