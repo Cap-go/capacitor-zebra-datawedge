@@ -205,8 +205,8 @@ public class ZebraDataWedgePlugin extends Plugin {
             ensureIntentAction(intentAction);
         }
         Bundle options = new Bundle();
-        options.putString("APPLICATION_NAME", call.getString("appName", getContext().getPackageName()));
-        options.putString("NOTIFICATION_TYPE", notificationType);
+        options.putString(ZebraDataWedge.EXTRA_APPLICATION_NAME, call.getString("appName", getContext().getPackageName()));
+        options.putString(ZebraDataWedge.EXTRA_NOTIFICATION_TYPE, notificationType);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_REGISTER_FOR_NOTIFICATION, options);
         sendCommand(call, intent, "register-for-notification", this::emptyResponse);
@@ -219,8 +219,8 @@ public class ZebraDataWedgePlugin extends Plugin {
             return;
         }
         Bundle options = new Bundle();
-        options.putString("APPLICATION_NAME", call.getString("appName", getContext().getPackageName()));
-        options.putString("NOTIFICATION_TYPE", notificationType);
+        options.putString(ZebraDataWedge.EXTRA_APPLICATION_NAME, call.getString("appName", getContext().getPackageName()));
+        options.putString(ZebraDataWedge.EXTRA_NOTIFICATION_TYPE, notificationType);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_UNREGISTER_FOR_NOTIFICATION, options);
         sendCommand(call, intent, "unregister-for-notification", this::emptyResponse);
