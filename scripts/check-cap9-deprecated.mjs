@@ -157,14 +157,17 @@ function collectScanRoots(pluginDir, pkg) {
   const cap = typeof pkg.capacitor === "object" && pkg.capacitor ? pkg.capacitor : {};
   const roots = [];
   if (cap.android) {
-    const androidMain = path.join(pluginDir, "android", "src", "main");
+    const androidSrc =
+      typeof cap.android === "object" && cap.android.src ? cap.android.src : "android";
+    const androidMain = path.join(pluginDir, androidSrc, "src", "main");
     if (exists(androidMain)) roots.push(androidMain);
   }
   if (cap.ios) {
-    const iosSources = path.join(pluginDir, "ios", "Sources");
+    const iosSrc = typeof cap.ios === "object" && cap.ios.src ? cap.ios.src : "ios";
+    const iosSources = path.join(pluginDir, iosSrc, "Sources");
     if (exists(iosSources)) roots.push(iosSources);
     else {
-      const iosDir = path.join(pluginDir, "ios");
+      const iosDir = path.join(pluginDir, iosSrc);
       if (exists(iosDir)) roots.push(iosDir);
     }
   }
