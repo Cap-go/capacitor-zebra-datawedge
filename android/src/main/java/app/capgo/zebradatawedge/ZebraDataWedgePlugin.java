@@ -410,11 +410,13 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
         Bundle options = new Bundle();
         options.putString("REPORTING_ENABLED", Boolean.toString(reportingEnabled));
-        if (call.hasOption("reportingGenerateOption")) {
-            options.putString("REPORTING_GENERATE_OPTION", call.getString("reportingGenerateOption"));
+        String reportingGenerateOption = call.getString("reportingGenerateOption");
+        if (reportingGenerateOption != null) {
+            options.putString("REPORTING_GENERATE_OPTION", reportingGenerateOption);
         }
-        if (call.hasOption("reportingShowForManualImport")) {
-            options.putString("REPORTING_SHOW_FOR_MANUAL_IMPORT", Boolean.toString(call.getBoolean("reportingShowForManualImport", false)));
+        Boolean reportingShowForManualImport = call.getBoolean("reportingShowForManualImport");
+        if (reportingShowForManualImport != null) {
+            options.putString("REPORTING_SHOW_FOR_MANUAL_IMPORT", Boolean.toString(reportingShowForManualImport));
         }
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_SET_REPORTING_OPTIONS, options);
