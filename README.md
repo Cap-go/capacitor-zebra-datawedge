@@ -117,6 +117,10 @@ await ZebraDataWedge.addListener('scan', (result) => {
   console.log('Scanned', result.data, result.labelType);
 });
 
+// Physical scan button: intent action is registered automatically from setConfig above.
+// You can also register explicitly before listening:
+// await ZebraRuntime.registerScanIntentAction(intentAction);
+
 const result = await ZebraRuntime.softScanTrigger(intentAction);
 console.log(result);
 ```
@@ -124,6 +128,8 @@ console.log(result);
 ## Notes
 
 - Query and configuration APIs depend on Zebra DataWedge being installed and enabled.
+- `setConfig()` registers scan intent actions from `scanIntentAction` and from `INTENT` plugin `intent_action` values after a successful update when those fields are included in the call.
+- `registerScanIntentAction()` registers a custom intent action without calling `registerForNotification()` or `softScanTrigger()`. Repeat on every app start because receiver registration is in-memory only.
 - `softScanTrigger()` waits for the next scan broadcast on the intent action you provide.
 - `softRfidTrigger()` uses the first registered scan intent action. Register a scan action first if you need RFID reads.
 - Web and iOS return "not available" errors for all DataWedge operations.
@@ -142,6 +148,7 @@ console.log(result);
 - [`setDisabledAppList(...)`](#setdisabledapplist)
 - [`setIgnoreDisabledProfiles(...)`](#setignoredisabledprofiles)
 - [`registerForNotification(...)`](#registerfornotification)
+- [`registerScanIntentAction(...)`](#registerscanintentaction)
 - [`unRegisterForNotification(...)`](#unregisterfornotification)
 - [`enumerateScanners()`](#enumeratescanners)
 - [`getActiveProfile()`](#getactiveprofile)
@@ -292,6 +299,22 @@ registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'
 | Param         | Type                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#omit">Omit</a>&lt;<a href="#registerfornotificationoptions">RegisterForNotificationOptions</a>, 'callback'&gt;</code> |
+
+---
+
+### registerScanIntentAction(...)
+
+```typescript
+registerScanIntentAction(options: RegisterScanIntentActionOptions) => Promise<void>
+```
+
+Registers a DataWedge scan broadcast intent action in the Android plugin receiver (runtime only;
+call again on every app start). Use when your profile uses a custom `intent_action` and scans
+come from the physical trigger.
+
+| Param         | Type                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#registerscanintentactionoptions">RegisterScanIntentActionOptions</a></code> |
 
 ---
 
@@ -638,13 +661,14 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 #### SetConfigOptions
 
-| Prop                 | Type                                                                |
-| -------------------- | ------------------------------------------------------------------- |
-| **`appList`**        | <code>DataWedgeAppConfig[]</code>                                   |
-| **`configMode`**     | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> |
-| **`pluginConfigs`**  | <code>DataWedgePluginConfig[]</code>                                |
-| **`profileEnabled`** | <code>boolean</code>                                                |
-| **`profileName`**    | <code>string</code>                                                 |
+| Prop                   | Type                                                                | Description                                                                                                                                                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`appList`**          | <code>DataWedgeAppConfig[]</code>                                   |                                                                                                                                                                                                                                                                                         |
+| **`configMode`**       | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> |                                                                                                                                                                                                                                                                                         |
+| **`pluginConfigs`**    | <code>DataWedgePluginConfig[]</code>                                |                                                                                                                                                                                                                                                                                         |
+| **`profileEnabled`**   | <code>boolean</code>                                                |                                                                                                                                                                                                                                                                                         |
+| **`profileName`**      | <code>string</code>                                                 |                                                                                                                                                                                                                                                                                         |
+| **`scanIntentAction`** | <code>string</code>                                                 | Registers this intent action in the plugin receiver (runtime only; call again on every app start) so scan broadcasts reach `scan` listeners. When omitted, `intent_action` values from `INTENT` entries in `pluginConfigs` are registered automatically after a successful `setConfig`. |
 
 #### DataWedgeAppConfig
 
@@ -695,6 +719,12 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`scannerStatus`**    | <code>string</code>                                              |
 | **`status`**           | <code>string</code>                                              |
 | **`raw`**              | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> |
+
+#### RegisterScanIntentActionOptions
+
+| Prop               | Type                | Description                                                                               |
+| ------------------ | ------------------- | ----------------------------------------------------------------------------------------- |
+| **`intentAction`** | <code>string</code> | DataWedge intent action used for barcode scan broadcasts (physical trigger or soft scan). |
 
 #### ZebraDeviceScanner
 

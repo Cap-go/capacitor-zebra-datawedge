@@ -35,6 +35,8 @@ public class ZebraDataWedgePlugin extends Plugin {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Map<String, PendingRequest> pendingRequests = new ConcurrentHashMap<>();
     private final Map<String, ScanRequest> pendingScans = new ConcurrentHashMap<>();
+    private final Set<String> manualIntentActions = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final Map<String, Set<String>> profileScanIntentActions = new ConcurrentHashMap<>();
     private final Set<String> registeredIntentActions = Collections.synchronizedSet(new LinkedHashSet<>());
     private BroadcastReceiver receiver;
     private boolean receiverRegistered = false;
@@ -160,9 +162,19 @@ public class ZebraDataWedgePlugin extends Plugin {
         if (pluginConfigs != null && pluginConfigs.length() > 0) {
             config.putParcelableArrayList("PLUGIN_CONFIG", parsePluginConfigs(pluginConfigs));
         }
+        final boolean declaresScanIntentRegistration =
+            call.getString("scanIntentAction") != null || declaresIntentPluginConfig(pluginConfigs);
+        final List<String> profileActions = declaresScanIntentRegistration
+            ? ZebraDataWedge.collectScanIntentActions(call.getString("scanIntentAction"), pluginConfigs)
+            : null;
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_SET_CONFIG, config);
-        sendCommand(call, intent, "set-config", this::emptyResponse);
+        sendCommand(call, intent, "set-config", (resultIntent) -> {
+            if (profileActions != null) {
+                applyProfileScanIntentActions(profileName, profileActions);
+            }
+            return emptyResponse(resultIntent);
+        });
     }
 
     @PluginMethod
@@ -202,7 +214,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
         String intentAction = call.getString("intentAction");
         if (intentAction != null && !intentAction.isEmpty()) {
-            ensureIntentAction(intentAction);
+            registerManualIntentAction(intentAction);
         }
         Bundle options = new Bundle();
         options.putString(ZebraDataWedge.EXTRA_APPLICATION_NAME, call.getString("appName", getContext().getPackageName()));
@@ -210,6 +222,16 @@ public class ZebraDataWedgePlugin extends Plugin {
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_REGISTER_FOR_NOTIFICATION, options);
         sendCommand(call, intent, "register-for-notification", this::emptyResponse);
+    }
+
+    @PluginMethod
+    public void registerScanIntentAction(PluginCall call) {
+        String intentAction = requiredString(call, "intentAction");
+        if (intentAction == null) {
+            return;
+        }
+        registerManualIntentAction(intentAction);
+        call.resolve();
     }
 
     @PluginMethod
@@ -428,7 +450,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         String action = registeredIntentActions.stream().findFirst().orElse(null);
         if (action == null) {
             call.reject(
-                "No scan intentAction is registered. Call softScanTrigger(intentAction) or registerForNotification({ intentAction }) first."
+                "No scan intentAction is registered. Call registerScanIntentAction(intentAction), softScanTrigger(intentAction), or registerForNotification({ intentAction }) first."
             );
             return;
         }
@@ -444,7 +466,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         if (intentAction == null) {
             return;
         }
-        ensureIntentAction(intentAction);
+        registerManualIntentAction(intentAction);
         startPendingScan(call, intentAction);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER, ZebraDataWedge.VALUE_START_SCANNING);
@@ -513,10 +535,50 @@ public class ZebraDataWedgePlugin extends Plugin {
         refreshReceiver();
     }
 
-    private void ensureIntentAction(String intentAction) {
-        if (registeredIntentActions.add(intentAction)) {
-            refreshReceiver();
+    private boolean declaresIntentPluginConfig(JSONArray pluginConfigs) {
+        if (pluginConfigs == null) {
+            return false;
         }
+        for (int i = 0; i < pluginConfigs.length(); i++) {
+            JSONObject json = pluginConfigs.optJSONObject(i);
+            if (json != null && "INTENT".equalsIgnoreCase(json.optString("pluginName"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void registerManualIntentAction(String intentAction) {
+        if (manualIntentActions.add(intentAction)) {
+            syncRegisteredIntentActions();
+        }
+    }
+
+    private void applyProfileScanIntentActions(String profileName, List<String> intentActions) {
+        if (intentActions == null || intentActions.isEmpty()) {
+            profileScanIntentActions.remove(profileName);
+        } else {
+            profileScanIntentActions.put(profileName, new LinkedHashSet<>(intentActions));
+        }
+        syncRegisteredIntentActions();
+    }
+
+    private void syncRegisteredIntentActions() {
+        LinkedHashSet<String> merged = new LinkedHashSet<>();
+        synchronized (manualIntentActions) {
+            merged.addAll(manualIntentActions);
+        }
+        for (Set<String> actions : profileScanIntentActions.values()) {
+            merged.addAll(actions);
+        }
+        synchronized (registeredIntentActions) {
+            if (registeredIntentActions.equals(merged)) {
+                return;
+            }
+            registeredIntentActions.clear();
+            registeredIntentActions.addAll(merged);
+        }
+        refreshReceiver();
     }
 
     private void refreshReceiver() {
