@@ -5,6 +5,7 @@ import android.os.Bundle;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -109,6 +110,33 @@ public final class ZebraDataWedge {
         ret.put("decodedMode", intent.getStringExtra(EXTRA_SCAN_DECODE_MODE));
         ret.put("intentAction", intent.getAction());
         return ret;
+    }
+
+    public static List<String> collectScanIntentActions(String scanIntentAction, JSONArray pluginConfigs) {
+        LinkedHashSet<String> actions = new LinkedHashSet<>();
+        if (scanIntentAction != null && !scanIntentAction.isEmpty()) {
+            actions.add(scanIntentAction);
+        }
+        if (pluginConfigs != null) {
+            for (int i = 0; i < pluginConfigs.length(); i++) {
+                JSONObject json = pluginConfigs.optJSONObject(i);
+                if (json == null) {
+                    continue;
+                }
+                if (!"INTENT".equalsIgnoreCase(json.optString("pluginName"))) {
+                    continue;
+                }
+                JSONObject paramList = json.optJSONObject("paramList");
+                if (paramList == null) {
+                    continue;
+                }
+                String intentAction = paramList.optString("intent_action");
+                if (intentAction != null && !intentAction.isEmpty()) {
+                    actions.add(intentAction);
+                }
+            }
+        }
+        return new ArrayList<>(actions);
     }
 
     public static JSObject bundleToJSObject(Bundle bundle) {

@@ -11,6 +11,7 @@ import type {
   ImportConfigOptions,
   PluginVersionResult,
   RegisterForNotificationOptions,
+  RegisterScanIntentActionOptions,
   RenameProfileOptions,
   ReportingOptions,
   SetConfigOptions,
@@ -64,6 +65,10 @@ export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin
   }
 
   registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void> {
+    return unavailable(options);
+  }
+
+  registerScanIntentAction(options: RegisterScanIntentActionOptions): Promise<void> {
     return unavailable(options);
   }
 

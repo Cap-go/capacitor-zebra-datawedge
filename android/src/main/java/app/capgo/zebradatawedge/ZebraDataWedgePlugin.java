@@ -160,6 +160,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         if (pluginConfigs != null && pluginConfigs.length() > 0) {
             config.putParcelableArrayList("PLUGIN_CONFIG", parsePluginConfigs(pluginConfigs));
         }
+        registerScanIntentActionsFromSetConfig(call);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_SET_CONFIG, config);
         sendCommand(call, intent, "set-config", this::emptyResponse);
@@ -210,6 +211,16 @@ public class ZebraDataWedgePlugin extends Plugin {
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_REGISTER_FOR_NOTIFICATION, options);
         sendCommand(call, intent, "register-for-notification", this::emptyResponse);
+    }
+
+    @PluginMethod
+    public void registerScanIntentAction(PluginCall call) {
+        String intentAction = requiredString(call, "intentAction");
+        if (intentAction == null) {
+            return;
+        }
+        ensureIntentAction(intentAction);
+        call.resolve();
     }
 
     @PluginMethod
@@ -428,7 +439,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         String action = registeredIntentActions.stream().findFirst().orElse(null);
         if (action == null) {
             call.reject(
-                "No scan intentAction is registered. Call softScanTrigger(intentAction) or registerForNotification({ intentAction }) first."
+                "No scan intentAction is registered. Call registerScanIntentAction(intentAction), softScanTrigger(intentAction), or registerForNotification({ intentAction }) first."
             );
             return;
         }
@@ -516,6 +527,14 @@ public class ZebraDataWedgePlugin extends Plugin {
     private void ensureIntentAction(String intentAction) {
         if (registeredIntentActions.add(intentAction)) {
             refreshReceiver();
+        }
+    }
+
+    private void registerScanIntentActionsFromSetConfig(PluginCall call) {
+        String scanIntentAction = call.getString("scanIntentAction");
+        JSONArray pluginConfigs = call.getArray("pluginConfigs");
+        for (String intentAction : ZebraDataWedge.collectScanIntentActions(scanIntentAction, pluginConfigs)) {
+            ensureIntentAction(intentAction);
         }
     }
 

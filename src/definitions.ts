@@ -153,6 +153,11 @@ export interface RegisterForNotificationOptions {
   notificationType: DataWedgeNotificationType;
 }
 
+export interface RegisterScanIntentActionOptions {
+  /** DataWedge intent action used for barcode scan broadcasts (physical trigger or soft scan). */
+  intentAction: string;
+}
+
 export interface RenameProfileOptions {
   currentProfileName: string;
   newProfileName: string;
@@ -170,6 +175,11 @@ export interface SetConfigOptions {
   pluginConfigs?: DataWedgePluginConfig[];
   profileEnabled?: boolean;
   profileName: string;
+  /**
+   * Registers this intent action in the plugin receiver so scan broadcasts reach `scan` listeners.
+   * When omitted, `intent_action` values from `INTENT` entries in `pluginConfigs` are registered automatically.
+   */
+  scanIntentAction?: string;
 }
 
 export interface SetDisabledAppListOptions {
@@ -244,6 +254,11 @@ export interface ZebraDataWedgePlugin extends Plugin {
   setDisabledAppList(options: SetDisabledAppListOptions): Promise<void>;
   setIgnoreDisabledProfiles(options: IgnoreDisabledProfilesResult): Promise<void>;
   registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void>;
+  /**
+   * Registers a DataWedge scan broadcast intent action in the Android plugin receiver.
+   * Use this when your profile uses a custom `intent_action` and scans come from the physical trigger.
+   */
+  registerScanIntentAction(options: RegisterScanIntentActionOptions): Promise<void>;
   unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void>;
   enumerateScanners(): Promise<{ scanners: ZebraDeviceScanner[] }>;
   getActiveProfile(): Promise<{ profileName: string }>;

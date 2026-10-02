@@ -16,6 +16,7 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setDisabledAppList", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setIgnoreDisabledProfiles", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "registerForNotification", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "registerScanIntentAction", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "unRegisterForNotification", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "enumerateScanners", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getActiveProfile", returnType: CAPPluginReturnPromise),
@@ -60,6 +61,7 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
     @objc public func setDisabledAppList(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func setIgnoreDisabledProfiles(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func registerForNotification(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func registerScanIntentAction(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func unRegisterForNotification(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func enumerateScanners(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func getActiveProfile(_ call: CAPPluginCall) { rejectUnavailable(call) }
