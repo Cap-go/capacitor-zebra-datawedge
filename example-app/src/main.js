@@ -23,9 +23,12 @@ const setStatus = (enabled) => {
 const readIntentAction = () => actionInput.value.trim();
 
 if (Capacitor.getPlatform() === 'android') {
-  ZebraRuntime.registerScanIntentAction(readIntentAction()).catch(() => {
-    // Non-Zebra devices reject registration; scan listener still shows platform errors on demand.
-  });
+  const registerIntentAction = () =>
+    ZebraRuntime.registerScanIntentAction(readIntentAction()).catch(() => {
+      // Non-Zebra devices reject registration; scan listener still shows platform errors on demand.
+    });
+  registerIntentAction();
+  actionInput.addEventListener('change', registerIntentAction);
 }
 
 ZebraDataWedge.addListener('scan', (event) => {

@@ -176,8 +176,9 @@ export interface SetConfigOptions {
   profileEnabled?: boolean;
   profileName: string;
   /**
-   * Registers this intent action in the plugin receiver so scan broadcasts reach `scan` listeners.
-   * When omitted, `intent_action` values from `INTENT` entries in `pluginConfigs` are registered automatically.
+   * Registers this intent action in the plugin receiver (runtime only; call again on every app start)
+   * so scan broadcasts reach `scan` listeners. When omitted, `intent_action` values from `INTENT`
+   * entries in `pluginConfigs` are registered automatically after a successful `setConfig`.
    */
   scanIntentAction?: string;
 }
@@ -255,8 +256,9 @@ export interface ZebraDataWedgePlugin extends Plugin {
   setIgnoreDisabledProfiles(options: IgnoreDisabledProfilesResult): Promise<void>;
   registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void>;
   /**
-   * Registers a DataWedge scan broadcast intent action in the Android plugin receiver.
-   * Use this when your profile uses a custom `intent_action` and scans come from the physical trigger.
+   * Registers a DataWedge scan broadcast intent action in the Android plugin receiver (runtime only;
+   * call again on every app start). Use when your profile uses a custom `intent_action` and scans
+   * come from the physical trigger.
    */
   registerScanIntentAction(options: RegisterScanIntentActionOptions): Promise<void>;
   unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void>;

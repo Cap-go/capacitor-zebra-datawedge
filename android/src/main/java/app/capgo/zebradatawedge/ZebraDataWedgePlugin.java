@@ -162,11 +162,17 @@ public class ZebraDataWedgePlugin extends Plugin {
         if (pluginConfigs != null && pluginConfigs.length() > 0) {
             config.putParcelableArrayList("PLUGIN_CONFIG", parsePluginConfigs(pluginConfigs));
         }
-        final List<String> profileActions = ZebraDataWedge.collectScanIntentActions(call.getString("scanIntentAction"), pluginConfigs);
+        final boolean declaresScanIntentRegistration =
+            call.getString("scanIntentAction") != null || declaresIntentPluginConfig(pluginConfigs);
+        final List<String> profileActions = declaresScanIntentRegistration
+            ? ZebraDataWedge.collectScanIntentActions(call.getString("scanIntentAction"), pluginConfigs)
+            : null;
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_SET_CONFIG, config);
         sendCommand(call, intent, "set-config", (resultIntent) -> {
-            applyProfileScanIntentActions(profileName, profileActions);
+            if (profileActions != null) {
+                applyProfileScanIntentActions(profileName, profileActions);
+            }
             return emptyResponse(resultIntent);
         });
     }
@@ -527,6 +533,19 @@ public class ZebraDataWedgePlugin extends Plugin {
             };
         }
         refreshReceiver();
+    }
+
+    private boolean declaresIntentPluginConfig(JSONArray pluginConfigs) {
+        if (pluginConfigs == null) {
+            return false;
+        }
+        for (int i = 0; i < pluginConfigs.length(); i++) {
+            JSONObject json = pluginConfigs.optJSONObject(i);
+            if (json != null && "INTENT".equalsIgnoreCase(json.optString("pluginName"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void registerManualIntentAction(String intentAction) {

@@ -130,6 +130,9 @@ public final class ZebraDataWedge {
                 if (paramList == null) {
                     continue;
                 }
+                if (paramList.isNull("intent_action")) {
+                    continue;
+                }
                 String intentAction = paramList.optString("intent_action");
                 if (intentAction != null && !intentAction.isEmpty()) {
                     actions.add(intentAction);
