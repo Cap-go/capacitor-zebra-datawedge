@@ -541,7 +541,16 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
         for (int i = 0; i < pluginConfigs.length(); i++) {
             JSONObject json = pluginConfigs.optJSONObject(i);
-            if (json != null && "INTENT".equalsIgnoreCase(json.optString("pluginName"))) {
+            if (json == null || !"INTENT".equalsIgnoreCase(json.optString("pluginName"))) {
+                continue;
+            }
+            JSONObject paramList = json.optJSONObject("paramList");
+            boolean hasIntentAction =
+                paramList != null && !paramList.isNull("intent_action") && !paramList.optString("intent_action").isEmpty();
+            if (hasIntentAction) {
+                return true;
+            }
+            if (json.optBoolean("resetConfig", true)) {
                 return true;
             }
         }

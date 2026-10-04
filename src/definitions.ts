@@ -176,9 +176,10 @@ export interface SetConfigOptions {
   profileEnabled?: boolean;
   profileName: string;
   /**
-   * Registers this intent action in the plugin receiver (runtime only; call again on every app start)
-   * so scan broadcasts reach `scan` listeners. When omitted, `intent_action` values from `INTENT`
-   * entries in `pluginConfigs` are registered automatically after a successful `setConfig`.
+   * Registers this intent action in the plugin receiver after a successful `setConfig` (runtime only;
+   * call again on every app start). `INTENT` entries in `pluginConfigs` also register their
+   * `intent_action` values automatically after a successful `setConfig`, whether or not
+   * `scanIntentAction` is supplied.
    */
   scanIntentAction?: string;
 }
