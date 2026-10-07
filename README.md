@@ -1,6 +1,8 @@
 # @capgo/capacitor-zebra-datawedge
 
-<a href="https://capgo.app/">
+Scan barcodes and RFID tags on Zebra Android devices from your Capacitor app with DataWedge: manage profiles, trigger scans and receive results. An open alternative to Ionic's enterprise Zebra scanner.
+
+<a href="https://capgo.app/?ref=plugin_zebra_datawedge">
   <img
     src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-zebra-datawedge"
     alt="Capgo - Instant updates for Capacitor"
@@ -8,15 +10,37 @@
 </a>
 
 <div align="center">
+  <p>
+    <b>Capgo</b>: open-source live updates for Ionic and Capacitor apps. Ship OTA fixes and features instantly, without
+    waiting for app store review.
+  </p>
   <h2>
-    <a href="https://capgo.app/?ref=plugin_zebra_datawedge"> ➡️ Get instant updates for your app with Capgo</a>
+    <a href="https://capgo.app/register/?ref=plugin_zebra_datawedge">➡️ Get started for free</a>
   </h2>
-  <h2>
+  <p>14-day unlimited free trial. No credit card required</p>
+  <p>
     <a href="https://capgo.app/consulting/?ref=plugin_zebra_datawedge">
-      Missing a feature? We’ll build the plugin for you.
+      Missing a feature? We'll build the plugin for you 💪
     </a>
-  </h2>
+  </p>
 </div>
+
+<p align="center">
+  <img
+    src="https://raw.githubusercontent.com/Cap-go/capacitor-zebra-datawedge/main/assets/github-social-preview.png"
+    alt="@capgo/capacitor-zebra-datawedge for Capacitor apps"
+    width="300"
+  />
+</p>
+
+## Key features
+
+- **Scan events**: the `scan` listener delivers barcode and RFID data.
+- **Soft scanning**: `softScanTrigger()` starts a scan from your UI.
+- **Profiles**: `createProfile()`, `cloneProfile()`, `renameProfile()`, `deleteProfile()` and `setConfig()`.
+- **Queries**: `enumerateScanners()`, `getActiveProfile()`, `getConfig()` and `getDatawedgeStatus()`.
+- **Notifications**: `registerForNotification()` with the `notification` event.
+- **Platforms**: Android. Android only, on Zebra devices with DataWedge. iOS and web return not available errors.
 
 Capgo's Zebra DataWedge plugin brings Zebra's Android barcode and RFID capture APIs to Capacitor.
 
