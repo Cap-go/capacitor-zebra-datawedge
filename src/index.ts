@@ -86,6 +86,8 @@ export const ZebraQuery = {
 };
 
 export const ZebraRuntime = {
+  registerScanIntentAction: (intentAction: string): Promise<void> =>
+    ZebraDataWedge.registerScanIntentAction({ intentAction }),
   disableDatawedge: (): Promise<void> => ZebraDataWedge.disableDatawedge(),
   disableScannerInput: (): Promise<void> => ZebraDataWedge.disableScannerInput(),
   enableDatawedge: (): Promise<void> => ZebraDataWedge.enableDatawedge(),
