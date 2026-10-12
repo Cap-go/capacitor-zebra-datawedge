@@ -25,7 +25,7 @@ Scan barcodes and RFID tags on Zebra Android devices from your Capacitor app wit
   </p>
 </div>
 
-> 🤖 **Building with an AI coding agent?** Install [Capgo skills](https://capgo.app/skills/?ref=plugin_zebra_datawedge) so Claude Code, Codex, Cursor, Copilot, or Gemini CLI know how to install and use `@capgo/capacitor-zebra-datawedge` in your Capacitor app: `npx skills add Cap-go/capgo-skills`. Then ask your agent: *"Add @capgo/capacitor-zebra-datawedge to my Capacitor app and wire it up."* [Agent setup guides](https://capgo.app/agents/?ref=plugin_zebra_datawedge) · [Hosted MCP](https://capgo.app/docs/ai/mcp/?ref=plugin_zebra_datawedge)
+> 🤖 **Building with an AI coding agent?** Install [Capgo skills](https://capgo.app/skills/?ref=plugin_zebra_datawedge) so Claude Code, Codex, Cursor, Copilot, or Gemini CLI know how to install and use `@capgo/capacitor-zebra-datawedge` in your Capacitor app: `npx skills add Cap-go/capgo-skills`. Then ask your agent: _"Add @capgo/capacitor-zebra-datawedge to my Capacitor app and wire it up."_ [Agent setup guides](https://capgo.app/agents/?ref=plugin_zebra_datawedge) · [Hosted MCP](https://capgo.app/docs/ai/mcp/?ref=plugin_zebra_datawedge)
 
 <p align="center">
   <img
