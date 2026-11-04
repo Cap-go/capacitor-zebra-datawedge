@@ -14,6 +14,36 @@ import org.junit.Test;
 public class QueryTransportTest extends DataWedgeTestSupport {
 
     @Test
+    public void identifierFreeTypedRepliesIgnoreUntrustedSenders() {
+        Call call = new Call(new JSObject());
+        plugin.getDatawedgeStatus(call);
+        plugin.deliverResultIntentForTest(
+            application,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled"),
+            android.os.Process.myUid(),
+            application.getPackageName()
+        );
+        assertEquals(0, call.completions);
+        receive(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled"));
+        assertEquals(1, call.completions);
+        assertTrue(call.result.getBoolean("isEnabled", false));
+    }
+
+    @Test
+    public void correlatedRepliesStillResolveWithoutSenderAuthentication() {
+        Call call = new Call(new JSObject().put("profileName", profile));
+        plugin.createProfile(call);
+        Intent command = lastBroadcast();
+        plugin.deliverResultIntentForTest(
+            application,
+            resultFor(command),
+            android.os.Process.myUid(),
+            application.getPackageName()
+        );
+        assertEquals(1, call.completions);
+    }
+
+    @Test
     public void queryWaitsForPayloadRatherThanAnEmptySuccessAcknowledgement() {
         Call call = new Call(new JSObject());
         plugin.getVersionInfo(call);

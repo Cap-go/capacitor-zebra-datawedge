@@ -99,7 +99,12 @@ abstract class DataWedgeTestSupport {
     }
 
     protected void receive(Intent response) {
-        application.sendBroadcast(response);
+        plugin.deliverResultIntentForTest(
+            application,
+            response,
+            android.os.Process.myUid(),
+            ZebraDataWedge.DATAWEDGE_PACKAGE
+        );
         shadowOf(Looper.getMainLooper()).idle();
     }
 

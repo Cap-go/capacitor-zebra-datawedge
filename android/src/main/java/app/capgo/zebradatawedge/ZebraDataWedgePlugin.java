@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Process;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -551,7 +552,7 @@ public class ZebraDataWedgePlugin extends Plugin {
             receiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    handleIntent(intent);
+                    handleIntent(context, intent, getSentFromUid(), getSentFromPackage());
                 }
             };
         }
@@ -636,7 +637,11 @@ public class ZebraDataWedgePlugin extends Plugin {
         receiverRegistered = true;
     }
 
-    private void handleIntent(Intent intent) {
+    void deliverResultIntentForTest(Context context, Intent intent, int sentFromUid, String sentFromPackage) {
+        handleIntent(context, intent, sentFromUid, sentFromPackage);
+    }
+
+    private void handleIntent(Context context, Intent intent, int sentFromUid, String sentFromPackage) {
         String action = intent.getAction();
         if (action == null) {
             return;
@@ -645,6 +650,9 @@ public class ZebraDataWedgePlugin extends Plugin {
             String commandId = intent.getStringExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER);
             PendingRequest request = commandId == null ? null : pendingRequests.get(commandId);
             if (request == null && commandId == null) {
+                if (!isTrustedDataWedgeSender(context, sentFromUid, sentFromPackage)) {
+                    return;
+                }
                 for (Map.Entry<String, PendingRequest> entry : pendingRequests.entrySet()) {
                     if (entry.getValue().hasQueryPayload(intent)) {
                         if (request != null) return; // Never guess between concurrent query owners.
@@ -672,6 +680,25 @@ public class ZebraDataWedgePlugin extends Plugin {
             notifyListeners("scan", payload);
             resolvePendingScan(intent.getAction(), payload);
         }
+    }
+
+    private boolean isTrustedDataWedgeSender(Context context, int sentFromUid, String sentFromPackage) {
+        if (ZebraDataWedge.DATAWEDGE_PACKAGE.equals(sentFromPackage)) {
+            return true;
+        }
+        if (sentFromUid == Process.INVALID_UID || sentFromUid == -1) {
+            return false;
+        }
+        String[] packages = context.getPackageManager().getPackagesForUid(sentFromUid);
+        if (packages == null) {
+            return false;
+        }
+        for (String packageName : packages) {
+            if (ZebraDataWedge.DATAWEDGE_PACKAGE.equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void sendCommand(PluginCall call, Intent intent, String prefix, ResponseParser parser) {
