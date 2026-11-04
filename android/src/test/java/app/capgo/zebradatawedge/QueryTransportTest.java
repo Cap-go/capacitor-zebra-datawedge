@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Looper;
 import com.getcapacitor.JSObject;
 import java.time.Duration;
+import java.util.function.Consumer;
 import org.junit.Test;
 
 public class QueryTransportTest extends DataWedgeTestSupport {
@@ -27,6 +28,108 @@ public class QueryTransportTest extends DataWedgeTestSupport {
         receive(resultFor(command));
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(9));
         assertEquals(1, call.completions);
+    }
+
+    @Test
+    public void malformedVersionExtrasDoNotCompleteQueriesBeforeTheirBundleArrives() {
+        for (java.io.Serializable malformed : new java.io.Serializable[] { null, "not-a-bundle", true, new String[] { "bad" } }) {
+            Bundle extras = new Bundle();
+            extras.putSerializable(ZebraDataWedge.RESULT_GET_VERSION_INFO, malformed);
+            Bundle version = new Bundle();
+            version.putString("DATAWEDGE", "15.0.2");
+            assertMalformedPayloadIsIgnored(
+                plugin::getVersionInfo,
+                new Intent(ZebraDataWedge.RESULT_ACTION).putExtras(extras),
+                new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_VERSION_INFO, version)
+            );
+        }
+    }
+
+    @Test
+    public void allQueryFamiliesRequireTheirExpectedOuterPayloadTypes() {
+        assertMalformedPayloadIsIgnored(
+            plugin::getActiveProfile,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_ACTIVE_PROFILE, new Bundle()),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_ACTIVE_PROFILE, profile)
+        );
+        Bundle config = new Bundle();
+        config.putString("PROFILE_NAME", profile);
+        assertMalformedPayloadIsIgnored(
+            plugin::getConfig,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_CONFIG, "not-a-bundle"),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_CONFIG, config)
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::getDatawedgeStatus,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, true),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled")
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::getProfilesList,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_PROFILES_LIST, "not-an-array"),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_PROFILES_LIST, new String[] { profile })
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::getScannerStatus,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_SCANNER_STATUS, new Bundle()),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_SCANNER_STATUS, "WAITING")
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::getIgnoreDisabledProfiles,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_IGNORE_DISABLED_PROFILES, true),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_IGNORE_DISABLED_PROFILES, "true")
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::enumerateTriggers,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_ENUMERATE_TRIGGERS, "not-an-array"),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_ENUMERATE_TRIGGERS, new String[] { "trigger" })
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::getDisabledAppList,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DISABLED_APP_LIST, new String[] { "bad" }),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putParcelableArrayListExtra(
+                ZebraDataWedge.RESULT_GET_DISABLED_APP_LIST,
+                new java.util.ArrayList<Bundle>()
+            )
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::enumerateScanners,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_ENUMERATE_SCANNERS, new String[] { "bad" }),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putParcelableArrayListExtra(
+                ZebraDataWedge.RESULT_ENUMERATE_SCANNERS,
+                new java.util.ArrayList<Bundle>()
+            )
+        );
+        assertMalformedPayloadIsIgnored(
+            plugin::enumerateScanners,
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_ENUMERATED_SCANNER_LIST, new Bundle()),
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(
+                ZebraDataWedge.RESULT_ENUMERATED_SCANNER_LIST,
+                new String[] { "legacy-scanner" }
+            )
+        );
+    }
+
+    private void assertMalformedPayloadIsIgnored(Consumer<Call> send, Intent malformed, Intent payload) {
+        for (boolean correlated : new boolean[] { false, true }) {
+            Call call = new Call(new JSObject().put("profileName", profile));
+            send.accept(call);
+            Intent command = lastBroadcast();
+            Intent invalidReply = new Intent(malformed);
+            Intent validReply = new Intent(payload);
+            if (correlated) {
+                String id = command.getStringExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER);
+                invalidReply.putExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER, id);
+                validReply.putExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER, id);
+            }
+            receive(invalidReply);
+            assertEquals(0, call.completions);
+            receive(validReply);
+            assertEquals(1, call.completions);
+            assertNull(call.error);
+            receive(validReply);
+            assertEquals(1, call.completions);
+        }
     }
 
     @Test
@@ -52,6 +155,24 @@ public class QueryTransportTest extends DataWedgeTestSupport {
         receive(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled"));
         assertNotNull(call.error);
         assertEquals(1, call.completions);
+    }
+
+    @Test
+    public void identifierFreeReplyCompletesReplacementAfterAnEarlierQueryTimedOut() {
+        Call expired = new Call(new JSObject());
+        plugin.getDatawedgeStatus(expired);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(9));
+        assertEquals("DATAWEDGE_TIMEOUT", expired.error);
+        Call replacement = new Call(new JSObject());
+        plugin.getDatawedgeStatus(replacement);
+        Intent replacementCommand = lastBroadcast();
+        receive(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled"));
+        assertEquals(1, expired.completions);
+        assertEquals(1, replacement.completions);
+        assertTrue(replacement.result.getBoolean("isEnabled", false));
+        receive(resultFor(replacementCommand).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled"));
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(9));
+        assertEquals(1, replacement.completions);
     }
 
     @Test

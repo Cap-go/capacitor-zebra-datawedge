@@ -15,6 +15,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1091,10 +1092,31 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
 
         boolean hasQueryPayload(Intent intent) {
+            Bundle extras = intent.getExtras();
+            if (extras == null) return false;
             for (String key : resultExtras) {
-                if (intent.hasExtra(key)) return true;
+                Object value = extras.get(key);
+                if (hasExpectedPayloadType(key, value)) return true;
             }
             return false;
+        }
+
+        /** Validate the outer wire type; empty containers remain valid query results. */
+        private boolean hasExpectedPayloadType(String key, Object value) {
+            if (Arrays.equals(resultExtras, VERSION_INFO_RESULTS) || Arrays.equals(resultExtras, CONFIG_RESULTS)) {
+                return value instanceof Bundle;
+            }
+            if (
+                Arrays.equals(resultExtras, PROFILES_LIST_RESULTS) ||
+                Arrays.equals(resultExtras, TRIGGER_RESULTS) ||
+                ZebraDataWedge.RESULT_ENUMERATED_SCANNER_LIST.equals(key)
+            ) {
+                return value instanceof String[];
+            }
+            if (Arrays.equals(resultExtras, DISABLED_APPS_RESULTS) || Arrays.equals(resultExtras, SCANNER_ENUMERATION_RESULTS)) {
+                return value instanceof ArrayList<?> || value instanceof android.os.Parcelable[];
+            }
+            return value instanceof String;
         }
     }
 
