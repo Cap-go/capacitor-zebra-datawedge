@@ -620,13 +620,23 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
         if (ZebraDataWedge.RESULT_ACTION.equals(action)) {
             String commandId = intent.getStringExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER);
-            if (commandId != null) {
-                PendingRequest request = pendingRequests.remove(commandId);
-                if (request != null) {
-                    handler.removeCallbacks(request.timeoutRunnable);
-                    resolvePendingRequest(request, intent);
-                    return;
+            PendingRequest request = commandId == null ? null : pendingRequests.get(commandId);
+            if (request == null && commandId == null) {
+                for (Map.Entry<String, PendingRequest> entry : pendingRequests.entrySet()) {
+                    if (entry.getValue().resultExtra != null && intent.hasExtra(entry.getValue().resultExtra)) {
+                        if (request != null) return; // Never guess between concurrent query owners.
+                        commandId = entry.getKey();
+                        request = entry.getValue();
+                    }
                 }
+            }
+            if (request != null) {
+                boolean failure = ZebraDataWedge.RESULT_FAILURE.equalsIgnoreCase(intent.getStringExtra(ZebraDataWedge.EXTRA_RESULT));
+                if (!failure && request.resultExtra != null && !intent.hasExtra(request.resultExtra)) return;
+                if (!pendingRequests.remove(commandId, request)) return;
+                handler.removeCallbacks(request.timeoutRunnable);
+                resolvePendingRequest(request, intent);
+                return;
             }
         }
 
@@ -648,12 +658,39 @@ public class ZebraDataWedgePlugin extends Plugin {
         Runnable timeout = () -> {
             PendingRequest removed = pendingRequests.remove(commandId);
             if (removed != null) {
-                removed.call.reject("Timed out waiting for DataWedge response.");
+                removed.call.reject("Timed out waiting for DataWedge response.", "DATAWEDGE_TIMEOUT");
             }
         };
-        pendingRequests.put(commandId, new PendingRequest(call, parser, timeout));
+        pendingRequests.put(commandId, new PendingRequest(call, parser, timeout, queryResultExtra(intent)));
         handler.postDelayed(timeout, REQUEST_TIMEOUT_MS);
-        sendBroadcast(intent, call);
+        try {
+            getContext().sendBroadcast(intent);
+        } catch (Exception exception) {
+            pendingRequests.remove(commandId);
+            handler.removeCallbacks(timeout);
+            call.reject("Failed to communicate with Zebra DataWedge.", "DATAWEDGE_TRANSPORT");
+        }
+    }
+
+    private String queryResultExtra(Intent intent) {
+        String[] commands = {
+            ZebraDataWedge.CMD_GET_ACTIVE_PROFILE,
+            ZebraDataWedge.CMD_GET_CONFIG,
+            ZebraDataWedge.CMD_GET_DATAWEDGE_STATUS,
+            ZebraDataWedge.CMD_GET_PROFILES_LIST,
+            ZebraDataWedge.CMD_GET_SCANNER_STATUS,
+            ZebraDataWedge.CMD_GET_VERSION_INFO,
+            ZebraDataWedge.CMD_GET_DISABLED_APP_LIST,
+            ZebraDataWedge.CMD_GET_IGNORE_DISABLED_PROFILES,
+            ZebraDataWedge.CMD_ENUMERATE_TRIGGERS,
+            ZebraDataWedge.CMD_ENUMERATE_SCANNERS
+        };
+        for (String command : commands) {
+            if (intent.hasExtra(command)) return command.equals(ZebraDataWedge.CMD_GET_SCANNER_STATUS)
+                ? ZebraDataWedge.RESULT_GET_SCANNER_STATUS
+                : command.replace(".api.", ".api.RESULT_");
+        }
+        return null;
     }
 
     private void sendBroadcast(Intent intent, PluginCall call) {
@@ -1028,10 +1065,12 @@ public class ZebraDataWedgePlugin extends Plugin {
         final PluginCall call;
         final ResponseParser parser;
         final Runnable timeoutRunnable;
+        final String resultExtra;
 
-        PendingRequest(PluginCall call, ResponseParser parser, Runnable timeoutRunnable) {
+        PendingRequest(PluginCall call, ResponseParser parser, Runnable timeoutRunnable, String resultExtra) {
             this.call = call;
             this.parser = parser;
+            this.resultExtra = resultExtra;
             this.timeoutRunnable = timeoutRunnable;
         }
     }
