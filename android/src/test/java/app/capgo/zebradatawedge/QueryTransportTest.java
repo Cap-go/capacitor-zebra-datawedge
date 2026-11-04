@@ -76,6 +76,8 @@ public class QueryTransportTest extends DataWedgeTestSupport {
         Call call = new Call(new JSObject().put("profileName", profile));
         plugin.createProfile(call);
         assertEquals("DATAWEDGE_TRANSPORT", call.error);
+        assertNotNull(call.cause);
+        assertEquals("fixture transport failure", call.cause.getMessage());
         assertEquals(1, call.completions);
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(9));
         assertEquals(1, call.completions);
@@ -161,5 +163,104 @@ public class QueryTransportTest extends DataWedgeTestSupport {
         );
         assertEquals(1, triggers.completions);
         assertEquals("fixture-trigger", triggers.result.optJSONArray("triggers").optString(0));
+    }
+
+    @Test
+    public void configurationAliasesWorkWithAndWithoutIdentifiers() {
+        for (String key : new String[] {
+            "com.symbol.datawedge.api.RESULT_GET_CONFIG",
+            "com.symbol.datawedge.api.GET_CONFIG_RESULT",
+            "GET_CONFIG_RESULT"
+        }) {
+            for (boolean correlated : new boolean[] { true, false }) {
+                Call call = new Call(new JSObject().put("profileName", profile));
+                plugin.getConfig(call);
+                Intent command = lastBroadcast();
+                receive(resultFor(command));
+                assertEquals(0, call.completions);
+                Bundle data = new Bundle();
+                data.putString("PROFILE_NAME", profile);
+                Intent response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(key, data);
+                if (correlated) response.putExtra("COMMAND_IDENTIFIER", command.getStringExtra("COMMAND_IDENTIFIER"));
+                receive(response);
+                assertEquals(1, call.completions);
+                assertEquals(profile, call.result.getString("profileName"));
+                receive(response);
+                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(9));
+                assertEquals(1, call.completions);
+            }
+        }
+    }
+
+    @Test
+    public void existingScalarAndArrayFallbacksRemainReachable() {
+        for (boolean correlated : new boolean[] { true, false }) {
+            Call active = new Call(new JSObject());
+            plugin.getActiveProfile(active);
+            Intent response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra("PROFILE_NAME", profile);
+            if (correlated) receiveCorrelated(response);
+            else receive(response);
+            assertEquals(profile, active.result.getString("profileName"));
+            Call service = new Call(new JSObject());
+            plugin.getDatawedgeStatus(service);
+            response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra("DATAWEDGE_STATUS", "enabled");
+            if (correlated) receiveCorrelated(response);
+            else receive(response);
+            assertTrue(service.result.getBoolean("isEnabled", false));
+            Call scanner = new Call(new JSObject());
+            plugin.getScannerStatus(scanner);
+            response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra("SCANNER_STATUS", "WAITING");
+            if (correlated) receiveCorrelated(response);
+            else receive(response);
+            assertEquals("WAITING", scanner.result.getString("status"));
+            Call ignore = new Call(new JSObject());
+            plugin.getIgnoreDisabledProfiles(ignore);
+            response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra("IGNORE_DISABLED_PROFILES", "true");
+            if (correlated) receiveCorrelated(response);
+            else receive(response);
+            assertTrue(ignore.result.getBoolean("enabled", false));
+            Call version = new Call(new JSObject());
+            plugin.getVersionInfo(version);
+            Bundle data = new Bundle();
+            data.putString("DATAWEDGE", "fixture-version");
+            response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra("GET_VERSION_INFO_RESULT", data);
+            if (correlated) receiveCorrelated(response);
+            else receive(response);
+            assertEquals("fixture-version", version.result.getString("dataWedgeVersion"));
+            Call triggers = new Call(new JSObject());
+            plugin.enumerateTriggers(triggers);
+            response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra("ENUMERATE_TRIGGERS", new String[] { "trigger" });
+            if (correlated) receiveCorrelated(response);
+            else receive(response);
+            assertEquals("trigger", triggers.result.optJSONArray("triggers").optString(0));
+            Call enumeration = new Call(new JSObject());
+            plugin.enumerateScanners(enumeration);
+            response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(
+                "DWAPI_KEY_ENUMERATEDSCANNERLIST",
+                new String[] { "legacy scanner" }
+            );
+            if (correlated) receiveCorrelated(response);
+            else receive(response);
+            assertEquals("legacy scanner", enumeration.result.optJSONArray("scanners").optJSONObject(0).optString("name"));
+        }
+    }
+
+    @Test
+    public void aliasesCannotStealACorrelatedReplyOrChooseBetweenOwners() {
+        Call first = new Call(new JSObject());
+        Call second = new Call(new JSObject());
+        plugin.getScannerStatus(first);
+        Intent firstRequest = lastBroadcast();
+        plugin.getScannerStatus(second);
+        Intent response = new Intent(ZebraDataWedge.RESULT_ACTION).putExtra("SCANNER_STATUS", "WAITING");
+        receive(response);
+        assertEquals(0, first.completions);
+        assertEquals(0, second.completions);
+        receive(new Intent(response).putExtra("COMMAND_IDENTIFIER", "unknown"));
+        assertEquals(0, first.completions);
+        assertEquals(0, second.completions);
+        receive(new Intent(response).putExtra("COMMAND_IDENTIFIER", firstRequest.getStringExtra("COMMAND_IDENTIFIER")));
+        assertEquals(1, first.completions);
+        assertEquals(0, second.completions);
     }
 }

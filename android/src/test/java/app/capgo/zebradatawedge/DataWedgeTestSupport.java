@@ -50,6 +50,7 @@ abstract class DataWedgeTestSupport {
         int completions;
         JSObject result;
         String error;
+        Exception cause;
 
         Call(JSObject data) {
             super(null, "ZebraDataWedge", "test", "test", data);
@@ -69,6 +70,7 @@ abstract class DataWedgeTestSupport {
         @Override
         public void reject(String message, String code, Exception exception, JSObject data) {
             error = code == null ? message : code;
+            cause = exception;
             completions++;
         }
     }
