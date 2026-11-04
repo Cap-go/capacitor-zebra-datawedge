@@ -2,6 +2,8 @@ import { WebPlugin } from '@capacitor/core';
 
 import type {
   CloneProfileOptions,
+  BeginScanSessionOptions,
+  ScanSession,
   CreateProfileOptions,
   DataWedgeNotifyOptions,
   DataWedgeStatusResult,
@@ -28,6 +30,19 @@ const unavailable = (...args: unknown[]) => {
 };
 
 export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin {
+  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean }> {
+    return unavailable();
+  }
+  beginScanSession(options: BeginScanSessionOptions): Promise<ScanSession> {
+    return unavailable(options);
+  }
+  triggerScanSession(options: { sessionId: string }): Promise<void> {
+    return unavailable(options);
+  }
+  endScanSession(options: { sessionId: string }): Promise<{ confirmed: boolean }> {
+    return unavailable(options);
+  }
+
   cloneProfile(options: CloneProfileOptions): Promise<void> {
     return unavailable(options);
   }

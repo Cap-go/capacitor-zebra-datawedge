@@ -66,13 +66,252 @@ public class ZebraDataWedgePlugin extends Plugin {
     private BroadcastReceiver receiver;
     private boolean receiverRegistered = false;
 
+    private ScanSession scanSession;
+    private String completedScanSession;
+    private boolean foreground = true;
+    private final Set<String> sessionProfiles = new LinkedHashSet<>();
+
+    private static class ScanSession {
+
+        final String id = java.util.UUID.randomUUID().toString();
+        final String profile;
+        final String action;
+        final int timeoutMs;
+        boolean owned;
+        boolean closing;
+        boolean triggered;
+        boolean endPending;
+        Runnable deadline;
+
+        ScanSession(String profile, String packageName, int timeoutMs) {
+            this.profile = profile;
+            this.action = packageName + ".datawedge.scan." + id;
+            this.timeoutMs = timeoutMs;
+        }
+    }
+
+    @PluginMethod
+    public void getScanSessionCapabilities(PluginCall call) {
+        call.resolve(new JSObject().put("version", 1).put("customProfileNames", true));
+    }
+
+    @PluginMethod
+    public synchronized void beginScanSession(PluginCall call) {
+        String profile = requiredString(call, "profileName");
+        if (profile == null) return;
+        Integer timeout = call.getInt("timeoutMs", 35000);
+        if (timeout == null || timeout < 1 || timeout > 600000) {
+            call.reject("timeoutMs must be between 1 and 600000.", "PARAMETER_INVALID");
+            return;
+        }
+        if (!foreground || scanSession != null) {
+            call.reject("Scanner session is unavailable or busy.", "SESSION_BUSY");
+            return;
+        }
+        ScanSession session = new ScanSession(profile, getContext().getPackageName(), timeout);
+        scanSession = session;
+        Bundle query = new Bundle();
+        query.putString("PROFILE_NAME", profile);
+        query.putString("APP_LIST", "");
+        Intent intent = ZebraDataWedge.newIntent();
+        intent.putExtra(ZebraDataWedge.CMD_GET_CONFIG, query);
+        sendCommand(
+            call,
+            intent,
+            "session-begin",
+            (response) -> {
+                synchronized (this) {
+                    if (scanSession != session || !foreground || session.closing) {
+                        throw new ZebraDataWedgeException("SESSION_CANCELLED", "Session was cancelled during discovery.");
+                    }
+                    Bundle config = response.getBundleExtra(ZebraDataWedge.RESULT_GET_CONFIG);
+                    ArrayList<Bundle> apps = config == null ? null : extractAppList(config);
+                    boolean own = false;
+                    if (apps != null && profile.equals(config.getString("PROFILE_NAME"))) {
+                        for (Bundle app : apps) {
+                            if (!getContext().getPackageName().equals(app.getString("PACKAGE_NAME"))) {
+                                throw new ZebraDataWedgeException("SESSION_OWNERSHIP", "Profile has a foreign association.");
+                            }
+                            own = true;
+                        }
+                    }
+                    if (!own) {
+                        throw new ZebraDataWedgeException("SESSION_OWNERSHIP", "Profile must already be associated with this application.");
+                    }
+                    session.owned = true;
+                    sessionProfiles.add(profile);
+                    registerManualIntentAction(session.action);
+                    session.deadline = () -> closeScanSession(session);
+                    handler.postDelayed(session.deadline, session.timeoutMs);
+                    return new JSObject()
+                        .put("sessionId", session.id)
+                        .put("profileName", session.profile)
+                        .put("intentAction", session.action)
+                        .put("timeoutMs", session.timeoutMs);
+                }
+            },
+            () -> discardUnstartedSession(session),
+            session.id
+        );
+    }
+
+    private synchronized void discardUnstartedSession(ScanSession session) {
+        if (scanSession == session && !session.owned) scanSession = null;
+    }
+
+    private ScanSession requireScanSession(PluginCall call, boolean allowClosing) {
+        String id = requiredString(call, "sessionId");
+        if (id == null) return null;
+        ScanSession session = scanSession;
+        if (session == null || !id.equals(session.id) || !session.owned || (!allowClosing && (session.closing || !foreground))) {
+            call.reject("No matching active scan session.", "SESSION_INACTIVE");
+            return null;
+        }
+        return session;
+    }
+
+    @PluginMethod
+    public synchronized void triggerScanSession(PluginCall call) {
+        ScanSession session = requireScanSession(call, false);
+        if (session == null) return;
+        Intent query = ZebraDataWedge.newIntent();
+        query.putExtra(ZebraDataWedge.CMD_GET_ACTIVE_PROFILE, "");
+        sendCommand(call, query, "session-active-profile", (response) -> {
+            synchronized (this) {
+                if (scanSession != session || session.closing || !foreground) {
+                    throw new ZebraDataWedgeException("SESSION_CANCELLED", "Session ended before triggering.");
+                }
+                if (!session.profile.equals(firstString(response, ZebraDataWedge.RESULT_GET_ACTIVE_PROFILE, "PROFILE_NAME"))) {
+                    throw new ZebraDataWedgeException("SESSION_PROFILE_INACTIVE", "The session profile is not active.");
+                }
+                session.triggered = true;
+                Intent trigger = ZebraDataWedge.newIntent();
+                trigger.putExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER, "START_SCANNING");
+                sendCommand(call, trigger, "session-trigger", this::emptyResponse);
+                // The second request owns this call until its own acknowledgement/timeout.
+                return null;
+            }
+        });
+    }
+
+    @PluginMethod
+    public synchronized void endScanSession(PluginCall call) {
+        String id = requiredString(call, "sessionId");
+        if (id == null) return;
+        if (id.equals(completedScanSession)) {
+            call.resolve(new JSObject().put("confirmed", true));
+            return;
+        }
+        ScanSession session = requireScanSession(call, true);
+        if (session == null) return;
+        if (session.endPending) {
+            call.reject("Cleanup is already awaiting acknowledgement.", "SESSION_BUSY");
+            return;
+        }
+        closeScanSession(session);
+        session.endPending = true;
+        sendCommand(
+            call,
+            disabledSessionProfile(session.profile),
+            "session-end",
+            (response) -> {
+                synchronized (this) {
+                    if (scanSession == session) scanSession = null;
+                    completedScanSession = session.id;
+                    return new JSObject().put("confirmed", true);
+                }
+            },
+            () -> {
+                synchronized (this) {
+                    session.endPending = false;
+                }
+            },
+            null
+        );
+    }
+
+    private Intent disabledSessionProfile(String profile) {
+        Bundle parameters = new Bundle();
+        parameters.putString("configure_all_scanners", "true");
+        parameters.putString("scanner_input_enabled", "false");
+        Bundle barcode = new Bundle();
+        barcode.putString("PLUGIN_NAME", "BARCODE");
+        barcode.putString("RESET_CONFIG", "false");
+        barcode.putBundle("PARAM_LIST", parameters);
+        ArrayList<Bundle> plugins = new ArrayList<>();
+        plugins.add(barcode);
+        Bundle config = new Bundle();
+        config.putString("PROFILE_NAME", profile);
+        config.putString("CONFIG_MODE", "UPDATE");
+        // Keep the association active: disabling the whole profile can activate Profile0 keystroke input.
+        config.putString("PROFILE_ENABLED", "true");
+        config.putParcelableArrayList("PLUGIN_CONFIG", plugins);
+        Intent intent = ZebraDataWedge.newIntent();
+        intent.putExtra(ZebraDataWedge.CMD_SET_CONFIG, config);
+        return intent;
+    }
+
+    private synchronized void closeScanSession(ScanSession session) {
+        if (scanSession != session) return;
+        session.closing = true;
+        if (session.deadline != null) handler.removeCallbacks(session.deadline);
+        if (session.owned) {
+            // A global STOP after pause could interrupt the newly foreground application's scanner.
+            if (foreground && session.triggered) {
+                Intent stop = ZebraDataWedge.newIntent();
+                stop.putExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER, "STOP_SCANNING");
+                try {
+                    getContext().sendBroadcast(stop);
+                } catch (Exception ignored) {
+                    /* Final disable still attempted. */
+                }
+            }
+            try {
+                getContext().sendBroadcast(disabledSessionProfile(session.profile));
+            } catch (Exception ignored) {
+                // Explicit end remains unconfirmed and retryable; never authorize camera handoff here.
+            }
+        }
+        manualIntentActions.remove(session.action);
+        profileScanIntentActions.remove(session.profile);
+        syncRegisteredIntentActions();
+        for (Map.Entry<String, PendingRequest> entry : pendingRequests.entrySet()) {
+            PendingRequest request = entry.getValue();
+            if (session.id.equals(request.sessionId) && pendingRequests.remove(entry.getKey(), request)) {
+                handler.removeCallbacks(request.timeoutRunnable);
+                request.call.reject("Scanner session cancelled.", "SESSION_CANCELLED");
+            }
+        }
+        ScanRequest scan = pendingScans.remove(session.action);
+        if (scan != null) {
+            handler.removeCallbacks(scan.timeoutRunnable);
+            scan.call.reject("Scanner session cancelled.", "SESSION_CANCELLED");
+        }
+        if (!session.owned) scanSession = null;
+    }
+
+    @Override
+    protected synchronized void handleOnPause() {
+        foreground = false;
+        if (scanSession != null) closeScanSession(scanSession);
+        super.handleOnPause();
+    }
+
+    @Override
+    protected synchronized void handleOnResume() {
+        foreground = true;
+        if (scanSession != null && scanSession.closing) closeScanSession(scanSession);
+        super.handleOnResume();
+    }
+
     @Override
     public void load() {
         ensureReceiver();
     }
 
     @Override
-    protected void handleOnDestroy() {
+    protected synchronized void handleOnDestroy() {
+        if (scanSession != null) closeScanSession(scanSession);
         super.handleOnDestroy();
         if (receiverRegistered && receiver != null) {
             try {
@@ -164,10 +403,18 @@ public class ZebraDataWedgePlugin extends Plugin {
     }
 
     @PluginMethod
-    public void setConfig(PluginCall call) {
+    public synchronized void setConfig(PluginCall call) {
         String profileName = requiredString(call, "profileName");
         if (profileName == null) {
             return;
+        }
+        if (sessionProfiles.contains(profileName)) {
+            ScanSession session = requireScanSession(call, false);
+            if (session == null) return;
+            if (!profileName.equals(session.profile)) {
+                call.reject("The session does not own this profile.", "SESSION_OWNERSHIP");
+                return;
+            }
         }
         Bundle config = new Bundle();
         config.putString("PROFILE_NAME", profileName);
@@ -494,6 +741,9 @@ public class ZebraDataWedgePlugin extends Plugin {
             return;
         }
         registerManualIntentAction(intentAction);
+        synchronized (this) {
+            if (scanSession != null && intentAction.equals(scanSession.action)) scanSession.triggered = true;
+        }
         startPendingScan(call, intentAction);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER, ZebraDataWedge.VALUE_START_SCANNING);
@@ -596,7 +846,15 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
     }
 
-    private void applyProfileScanIntentActions(String profileName, List<String> intentActions) {
+    private synchronized void applyProfileScanIntentActions(String profileName, List<String> intentActions) {
+        if (
+            sessionProfiles.contains(profileName) &&
+            (scanSession == null || scanSession.closing || !profileName.equals(scanSession.profile))
+        ) {
+            profileScanIntentActions.remove(profileName);
+            syncRegisteredIntentActions();
+            return;
+        }
         if (intentActions == null || intentActions.isEmpty()) {
             profileScanIntentActions.remove(profileName);
         } else {
@@ -732,23 +990,31 @@ public class ZebraDataWedgePlugin extends Plugin {
     }
 
     private void sendCommand(PluginCall call, Intent intent, String prefix, ResponseParser parser) {
+        sendCommand(call, intent, prefix, parser, null, call.getString("sessionId"));
+    }
+
+    private void sendCommand(PluginCall call, Intent intent, String prefix, ResponseParser parser, Runnable onFailure, String sessionId) {
         String commandId = ZebraDataWedge.newCommandIdentifier(prefix);
         intent.putExtra(ZebraDataWedge.EXTRA_SEND_RESULT, ZebraDataWedge.VALUE_LAST_RESULT);
         intent.putExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER, commandId);
         Runnable timeout = () -> {
             PendingRequest removed = pendingRequests.remove(commandId);
             if (removed != null) {
+                if (removed.onFailure != null) removed.onFailure.run();
                 removed.call.reject("Timed out waiting for DataWedge response.", "DATAWEDGE_TIMEOUT");
             }
         };
-        pendingRequests.put(commandId, new PendingRequest(call, parser, timeout, queryResultExtras(intent)));
+        pendingRequests.put(commandId, new PendingRequest(call, parser, timeout, queryResultExtras(intent), onFailure, sessionId));
         handler.postDelayed(timeout, REQUEST_TIMEOUT_MS);
         try {
             getContext().sendBroadcast(intent);
         } catch (Exception exception) {
-            pendingRequests.remove(commandId);
+            PendingRequest removed = pendingRequests.remove(commandId);
             handler.removeCallbacks(timeout);
-            call.reject("Failed to communicate with Zebra DataWedge.", "DATAWEDGE_TRANSPORT", exception);
+            if (removed != null) {
+                if (removed.onFailure != null) removed.onFailure.run();
+                call.reject("Failed to communicate with Zebra DataWedge.", "DATAWEDGE_TRANSPORT", exception);
+            }
         }
     }
 
@@ -787,10 +1053,13 @@ public class ZebraDataWedgePlugin extends Plugin {
     private void resolvePendingRequest(PendingRequest request, Intent intent) {
         try {
             rejectIfFailure(intent);
-            request.call.resolve(request.parser.parse(intent));
+            JSObject result = request.parser.parse(intent);
+            if (result != null) request.call.resolve(result);
         } catch (ZebraDataWedgeException exception) {
+            if (request.onFailure != null) request.onFailure.run();
             request.call.reject(exception.getMessage(), exception.getCode());
         } catch (Exception exception) {
+            if (request.onFailure != null) request.onFailure.run();
             request.call.reject(exception.getMessage(), exception);
         }
     }
@@ -1160,11 +1429,15 @@ public class ZebraDataWedgePlugin extends Plugin {
         final ResponseParser parser;
         final Runnable timeoutRunnable;
         final String[] resultExtras;
+        final Runnable onFailure;
+        final String sessionId;
 
-        PendingRequest(PluginCall call, ResponseParser parser, Runnable timeoutRunnable, String[] resultExtras) {
+        PendingRequest(PluginCall call, ResponseParser parser, Runnable timeoutRunnable, String[] resultExtras, Runnable onFailure, String sessionId) {
             this.call = call;
             this.parser = parser;
             this.resultExtras = resultExtras;
+            this.onFailure = onFailure;
+            this.sessionId = sessionId;
             this.timeoutRunnable = timeoutRunnable;
         }
 

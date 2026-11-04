@@ -170,6 +170,8 @@ export interface ReportingOptions {
 }
 
 export interface SetConfigOptions {
+  /** Required for profiles enrolled in an active opt-in native scan session. */
+  sessionId?: string;
   appList?: DataWedgeAppConfig[];
   configMode?: DataWedgeConfigMode;
   pluginConfigs?: DataWedgePluginConfig[];
@@ -245,7 +247,41 @@ export interface IgnoreDisabledProfilesResult {
   enabled: boolean;
 }
 
+export interface BeginScanSessionOptions {
+  /** Existing profile associated exclusively with this application. No naming suffix is required. */
+  profileName: string;
+  /** Native lease deadline, 1..600000 ms. Default: 35000. Starts after association validation. */
+  timeoutMs?: number;
+}
+
+export interface ScanSession {
+  sessionId: string;
+  profileName: string;
+  /** Configure this action in the profile's INTENT output before triggering. */
+  intentAction: string;
+  timeoutMs: number;
+}
+
 export interface ZebraDataWedgePlugin extends Plugin {
+  /** Read-only native session API negotiation. Does not send a DataWedge command. */
+  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean }>;
+  /**
+   * Validate an existing app-owned profile and acquire an opt-in exclusive native session.
+   * The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
+   * Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
+   * this process. Other low-level APIs are unchanged and must not mutate an active session's profile.
+   */
+  beginScanSession(options: BeginScanSessionOptions): Promise<ScanSession>;
+  /** Verify the active profile, then dispatch START_SCANNING for a foreground session. Scan values arrive via the scan event. */
+  triggerScanSession(options: { sessionId: string }): Promise<void>;
+  /**
+   * Cancel owned pending calls, remove the action and await targeted Barcode Input disable.
+   * Resolves only after DataWedge acknowledges cleanup. A failed/unanswered end is retryable and
+   * blocks new sessions; do not start a camera scanner until confirmed. Concurrent end calls reject
+   * SESSION_BUSY; repeating a completed end is idempotent. Pause/deadline cleanup is best effort and
+   * still requires explicit end acknowledgement. No persistent process-death recovery is enabled.
+   */
+  endScanSession(options: { sessionId: string }): Promise<{ confirmed: boolean }>;
   cloneProfile(options: CloneProfileOptions): Promise<void>;
   createProfile(options: CreateProfileOptions): Promise<void>;
   deleteProfile(options: DeleteProfileOptions): Promise<void>;

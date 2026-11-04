@@ -167,6 +167,10 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 
 <docgen-index>
 
+- [`getScanSessionCapabilities()`](#getscansessioncapabilities)
+- [`beginScanSession(...)`](#beginscansession)
+- [`triggerScanSession(...)`](#triggerscansession)
+- [`endScanSession(...)`](#endscansession)
 - [`cloneProfile(...)`](#cloneprofile)
 - [`createProfile(...)`](#createprofile)
 - [`deleteProfile(...)`](#deleteprofile)
@@ -214,6 +218,71 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
+
+### getScanSessionCapabilities()
+
+```typescript
+getScanSessionCapabilities() => Promise<{ version: number; customProfileNames: boolean; }>
+```
+
+Read-only native session API negotiation. Does not send a DataWedge command.
+
+**Returns:** <code>Promise&lt;{ version: number; customProfileNames: boolean; }&gt;</code>
+
+---
+
+### beginScanSession(...)
+
+```typescript
+beginScanSession(options: BeginScanSessionOptions) => Promise<ScanSession>
+```
+
+Validate an existing app-owned profile and acquire an opt-in exclusive native session.
+The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
+Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
+this process. Other low-level APIs are unchanged and must not mutate an active session's profile.
+
+| Param         | Type                                                                        |
+| ------------- | --------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#beginscansessionoptions">BeginScanSessionOptions</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#scansession">ScanSession</a>&gt;</code>
+
+---
+
+### triggerScanSession(...)
+
+```typescript
+triggerScanSession(options: { sessionId: string; }) => Promise<void>
+```
+
+Verify the active profile, then dispatch START_SCANNING for a foreground session. Scan values arrive via the scan event.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+---
+
+### endScanSession(...)
+
+```typescript
+endScanSession(options: { sessionId: string; }) => Promise<{ confirmed: boolean; }>
+```
+
+Cancel owned pending calls, remove the action and await targeted Barcode Input disable.
+Resolves only after DataWedge acknowledges cleanup. A failed/unanswered end is retryable and
+blocks new sessions; do not start a camera scanner until confirmed. Concurrent end calls reject
+SESSION_BUSY; repeating a completed end is idempotent. Pause/deadline cleanup is best effort and
+still requires explicit end acknowledgement. No persistent process-death recovery is enabled.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ confirmed: boolean; }&gt;</code>
+
+---
 
 ### cloneProfile(...)
 
@@ -766,6 +835,22 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 ### Interfaces
 
+#### ScanSession
+
+| Prop               | Type                | Description                                                             |
+| ------------------ | ------------------- | ----------------------------------------------------------------------- |
+| **`sessionId`**    | <code>string</code> |                                                                         |
+| **`profileName`**  | <code>string</code> |                                                                         |
+| **`intentAction`** | <code>string</code> | Configure this action in the profile's INTENT output before triggering. |
+| **`timeoutMs`**    | <code>number</code> |                                                                         |
+
+#### BeginScanSessionOptions
+
+| Prop              | Type                | Description                                                                                  |
+| ----------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| **`profileName`** | <code>string</code> | Existing profile associated exclusively with this application. No naming suffix is required. |
+| **`timeoutMs`**   | <code>number</code> | Native lease deadline, 1..600000 ms. Default: 35000. Starts after association validation.    |
+
 #### CloneProfileOptions
 
 | Prop                    | Type                |
@@ -803,6 +888,7 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 | Prop                   | Type                                                                | Description                                                                                                                                                                                                                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`sessionId`**        | <code>string</code>                                                 | Required for profiles enrolled in an active opt-in native scan session.                                                                                                                                                                                                                                       |
 | **`appList`**          | <code>DataWedgeAppConfig[]</code>                                   |                                                                                                                                                                                                                                                                                                               |
 | **`configMode`**       | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> |                                                                                                                                                                                                                                                                                                               |
 | **`pluginConfigs`**    | <code>DataWedgePluginConfig[]</code>                                |                                                                                                                                                                                                                                                                                                               |
