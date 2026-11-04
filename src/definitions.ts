@@ -255,6 +255,11 @@ export interface ZebraDataWedgePlugin extends Plugin {
   setConfig(options: SetConfigOptions): Promise<void>;
   setDisabledAppList(options: SetDisabledAppListOptions): Promise<void>;
   setIgnoreDisabledProfiles(options: IgnoreDisabledProfilesResult): Promise<void>;
+  /**
+   * Completes when the notification command is dispatched to DataWedge.
+   * This does not confirm registration, policy approval, or scanner readiness;
+   * observe notification events to determine the scanner's state.
+   */
   registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void>;
   /**
    * Registers a DataWedge scan broadcast intent action in the Android plugin receiver (runtime only;
@@ -262,6 +267,11 @@ export interface ZebraDataWedgePlugin extends Plugin {
    * come from the physical trigger.
    */
   registerScanIntentAction(options: RegisterScanIntentActionOptions): Promise<void>;
+  /**
+   * Completes when the notification command is dispatched to DataWedge.
+   * This does not confirm registration, policy approval, or scanner readiness;
+   * observe notification events to determine the scanner's state.
+   */
   unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void>;
   enumerateScanners(): Promise<{ scanners: ZebraDeviceScanner[] }>;
   getActiveProfile(): Promise<{ profileName: string }>;

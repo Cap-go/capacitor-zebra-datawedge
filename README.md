@@ -317,6 +317,10 @@ setIgnoreDisabledProfiles(options: IgnoreDisabledProfilesResult) => Promise<void
 registerForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>) => Promise<void>
 ```
 
+Completes when the notification command is dispatched to DataWedge.
+This does not confirm registration, policy approval, or scanner readiness;
+observe notification events to determine the scanner's state.
+
 | Param         | Type                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#omit">Omit</a>&lt;<a href="#registerfornotificationoptions">RegisterForNotificationOptions</a>, 'callback'&gt;</code> |
@@ -344,6 +348,10 @@ come from the physical trigger.
 ```typescript
 unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>) => Promise<void>
 ```
+
+Completes when the notification command is dispatched to DataWedge.
+This does not confirm registration, policy approval, or scanner readiness;
+observe notification events to determine the scanner's state.
 
 | Param         | Type                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
