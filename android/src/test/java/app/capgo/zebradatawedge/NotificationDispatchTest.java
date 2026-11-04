@@ -43,6 +43,8 @@ public class NotificationDispatchTest extends DataWedgeTestSupport {
             if (register) plugin.registerForNotification(call);
             else plugin.unRegisterForNotification(call);
             assertEquals("DATAWEDGE_TRANSPORT", call.error);
+            assertNotNull(call.cause);
+            assertEquals("fixture transport failure", call.cause.getMessage());
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(9));
             assertEquals(1, call.completions);
         }

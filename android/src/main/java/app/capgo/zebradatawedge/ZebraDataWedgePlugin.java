@@ -221,12 +221,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         options.putString(ZebraDataWedge.EXTRA_NOTIFICATION_TYPE, notificationType);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_REGISTER_FOR_NOTIFICATION, options);
-        try {
-            getContext().sendBroadcast(intent);
-            call.resolve();
-        } catch (Exception exception) {
-            call.reject("DataWedge notification transport failed.", "DATAWEDGE_TRANSPORT");
-        }
+        dispatchNotification(intent, call);
     }
 
     @PluginMethod
@@ -250,12 +245,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         options.putString(ZebraDataWedge.EXTRA_NOTIFICATION_TYPE, notificationType);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_UNREGISTER_FOR_NOTIFICATION, options);
-        try {
-            getContext().sendBroadcast(intent);
-            call.resolve();
-        } catch (Exception exception) {
-            call.reject("DataWedge notification transport failed.", "DATAWEDGE_TRANSPORT");
-        }
+        dispatchNotification(intent, call);
     }
 
     @PluginMethod
@@ -664,6 +654,16 @@ public class ZebraDataWedgePlugin extends Plugin {
         pendingRequests.put(commandId, new PendingRequest(call, parser, timeout));
         handler.postDelayed(timeout, REQUEST_TIMEOUT_MS);
         sendBroadcast(intent, call);
+    }
+
+    private void dispatchNotification(Intent intent, PluginCall call) {
+        try {
+            getContext().sendBroadcast(intent);
+        } catch (Exception exception) {
+            call.reject("DataWedge notification transport failed.", "DATAWEDGE_TRANSPORT", exception);
+            return;
+        }
+        call.resolve();
     }
 
     private void sendBroadcast(Intent intent, PluginCall call) {

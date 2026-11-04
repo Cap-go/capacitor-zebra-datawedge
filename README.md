@@ -349,9 +349,9 @@ come from the physical trigger.
 unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>) => Promise<void>
 ```
 
-Completes when the notification command is dispatched to DataWedge.
-This does not confirm registration, policy approval, or scanner readiness;
-observe notification events to determine the scanner's state.
+Completes when the unregistration command is dispatched to DataWedge.
+This does not confirm unregistration or policy approval; notifications may already be queued.
+Dispose of local listeners separately when using the low-level API.
 
 | Param         | Type                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
