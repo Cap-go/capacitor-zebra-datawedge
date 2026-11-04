@@ -34,12 +34,7 @@ public class QueryTransportTest extends DataWedgeTestSupport {
         Call call = new Call(new JSObject().put("profileName", profile));
         plugin.createProfile(call);
         Intent command = lastBroadcast();
-        plugin.deliverResultIntentForTest(
-            application,
-            resultFor(command),
-            android.os.Process.myUid(),
-            application.getPackageName()
-        );
+        plugin.deliverResultIntentForTest(application, resultFor(command), android.os.Process.myUid(), application.getPackageName());
         assertEquals(1, call.completions);
     }
 
