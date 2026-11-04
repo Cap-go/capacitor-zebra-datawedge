@@ -1005,7 +1005,8 @@ public class ZebraDataWedgePlugin extends Plugin {
         ret.put("id", bundle.getString("SCANNER_IDENTIFIER"));
         ret.put(
             "connectionState",
-            "true".equalsIgnoreCase(bundle.getString("SCANNER_CONNECTION_STATE")) || bundle.getBoolean("SCANNER_CONNECTION_STATE")
+            Boolean.TRUE.equals(bundle.get("SCANNER_CONNECTION_STATE")) ||
+                "true".equalsIgnoreCase(String.valueOf(bundle.get("SCANNER_CONNECTION_STATE")))
         );
         return ret;
     }
