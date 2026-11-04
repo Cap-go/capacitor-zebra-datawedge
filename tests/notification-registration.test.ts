@@ -207,4 +207,53 @@ describe('notification callback registration', () => {
     await f.api.registerForNotification(options);
     expect(f.operations).toEqual(['register']);
   });
+  it('retains an inactive handle when unregister cleanup fails and retries removal', async () => {
+    const f = fixture();
+    let count = 0;
+    await f.api.registerForNotification({
+      ...options,
+      callback: () => {
+        count += 1;
+      },
+    });
+    const error = new Error('remove failed');
+    f.state.removeError = error;
+    await expect(f.api.unRegisterForNotification(options)).rejects.toBe(error);
+    f.emit();
+    expect(count).toBe(0);
+    expect(f.listeners.size).toBe(1);
+    f.state.removeError = undefined;
+    await f.api.unRegisterForNotification(options);
+    expect(f.listeners.size).toBe(0);
+  });
+  it('does not reactivate an unregistered callback when a later replacement fails', async () => {
+    const f = fixture();
+    let oldCount = 0;
+    let newCount = 0;
+    await f.api.registerForNotification({
+      ...options,
+      callback: () => {
+        oldCount += 1;
+      },
+    });
+    f.state.removeError = new Error('remove failed');
+    await expect(f.api.unRegisterForNotification(options)).rejects.toThrow('remove failed');
+    f.state.removeError = undefined;
+    f.state.dispatch = async () => {
+      throw new Error('replacement failed');
+    };
+    await expect(
+      f.api.registerForNotification({
+        ...options,
+        callback: () => {
+          newCount += 1;
+        },
+      }),
+    ).rejects.toThrow('replacement failed');
+    f.emit();
+    expect(oldCount).toBe(0);
+    expect(newCount).toBe(0);
+    await f.api.unRegisterForNotification(options);
+    expect(f.listeners.size).toBe(0);
+  });
 });

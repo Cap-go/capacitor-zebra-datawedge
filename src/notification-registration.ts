@@ -18,6 +18,7 @@ interface Registration {
 /** Keep listener installation and native dispatch in one ordered operation per registration key. */
 export function createZebraNotification(native: NotificationBridge): {
   registerForNotification(options: RegisterForNotificationOptions): Promise<void>;
+  /** Unregister and remove the local listener; failed cleanup retains an inactive handle for retry. */
   unRegisterForNotification(options: NativeOptions): Promise<void>;
 } {
   const registrations = new Map<string, Registration>();
@@ -52,6 +53,7 @@ export function createZebraNotification(native: NotificationBridge): {
           return;
         }
         const previous = registrations.get(key);
+        const previousActive = previous?.active ?? false;
         let active = true;
         // Subscribe first: DataWedge may emit status before native dispatch resolves.
         const handle = await native.addListener('notification', (event) => {
@@ -73,7 +75,7 @@ export function createZebraNotification(native: NotificationBridge): {
         } catch (error) {
           registration.active = false;
           if (previous) {
-            previous.active = true;
+            previous.active = previousActive;
             registrations.set(key, previous);
           } else {
             registrations.delete(key);
@@ -95,8 +97,10 @@ export function createZebraNotification(native: NotificationBridge): {
         const registration = registrations.get(key);
         if (registration) {
           registration.active = false;
-          registrations.delete(key);
+          // Preserve the wrapper's cleanup contract: retain an inactive handle if removal fails,
+          // so a later unregister can retry instead of forgetting the still-installed listener.
           await registration.handle.remove();
+          registrations.delete(key);
         }
       });
     },
