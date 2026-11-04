@@ -245,7 +245,41 @@ export interface IgnoreDisabledProfilesResult {
   enabled: boolean;
 }
 
+export interface DiagnosticsOptions {
+  /** Enable metadata tracing. Disabled by default; disabling does not erase previous entries. */
+  enabled: boolean;
+  /** Number of recent entries retained, from 1 to 1000. Default: 100. */
+  maxEntries?: number;
+  /** Clear retained entries and reset elapsed time and dropped count. Default: false. */
+  reset?: boolean;
+}
+
+export interface DataWedgeDiagnosticsSnapshot {
+  diagnosticsVersion: number;
+  enabled: boolean;
+  maxEntries: number;
+  droppedEntries: number;
+  manufacturer: string;
+  model: string;
+  androidVersion: string;
+  /** notFound means Android could not find the package; it is not a service-permission check. */
+  dataWedgePackage: { status: 'installed' | 'notFound' | 'unavailable'; version?: string };
+  commands: {
+    commandIdentifier: string;
+    outcome: 'SENT' | 'SUCCESS' | 'FAILURE' | 'TIMEOUT' | 'TRANSPORT_ERROR' | 'CANCELLED';
+    elapsedMs: number;
+  }[];
+}
+
 export interface ZebraDataWedgePlugin extends Plugin {
+  /** Configure opt-in native command metadata tracing. Never enables DataWedge or scanner input. */
+  configureDiagnostics(options: DiagnosticsOptions): Promise<void>;
+  /**
+   * Return a read-only native environment and trace snapshot. Does not send any DataWedge commands.
+   * Barcode values, intent bodies and arbitrary exception text are excluded. The application decides
+   * which device information to include when sharing this snapshot. Android only.
+   */
+  getDiagnostics(): Promise<DataWedgeDiagnosticsSnapshot>;
   cloneProfile(options: CloneProfileOptions): Promise<void>;
   createProfile(options: CreateProfileOptions): Promise<void>;
   deleteProfile(options: DeleteProfileOptions): Promise<void>;
