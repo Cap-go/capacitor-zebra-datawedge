@@ -8,7 +8,6 @@ import type {
   DataWedgeStatusResult,
   GetConfigOptions,
   ImportConfigOptions,
-  RegisterForNotificationOptions,
   RenameProfileOptions,
   ReportingOptions,
   ScannerStatus,
@@ -21,15 +20,11 @@ import type {
   ZebraProfileConfiguration,
   ZebraScanResult,
 } from './definitions';
+import { createZebraNotification } from './notification-registration';
 
 const ZebraDataWedge = registerPlugin<ZebraDataWedgePlugin>('ZebraDataWedge', {
   web: () => import('./web').then((m) => new m.ZebraDataWedgeWeb()),
 });
-
-const notificationHandles = new Map<string, Awaited<ReturnType<typeof ZebraDataWedge.addListener>>>();
-
-const notificationKey = (options: Omit<RegisterForNotificationOptions, 'callback'>) =>
-  `${options.appName ?? ''}:${options.intentAction ?? ''}:${options.notificationType}`;
 
 export const ZebraConfiguration = {
   cloneProfile: (options: CloneProfileOptions): Promise<void> => ZebraDataWedge.cloneProfile(options),
@@ -44,32 +39,7 @@ export const ZebraConfiguration = {
     ZebraDataWedge.setIgnoreDisabledProfiles({ enabled: doIgnoreDisabledProfiles }),
 };
 
-export const ZebraNotification = {
-  async registerForNotification(options: RegisterForNotificationOptions): Promise<void> {
-    const nativeOptions = {
-      appName: options.appName,
-      intentAction: options.intentAction,
-      notificationType: options.notificationType,
-    };
-    await ZebraDataWedge.registerForNotification(nativeOptions);
-    if (options.callback) {
-      const key = notificationKey(nativeOptions);
-      await notificationHandles.get(key)?.remove();
-      const handle = await ZebraDataWedge.addListener('notification', (event) => {
-        if (event.notificationType === options.notificationType) {
-          options.callback?.(event);
-        }
-      });
-      notificationHandles.set(key, handle);
-    }
-  },
-  async unRegisterForNotification(options: Omit<RegisterForNotificationOptions, 'callback'>): Promise<void> {
-    await ZebraDataWedge.unRegisterForNotification(options);
-    const key = notificationKey(options);
-    await notificationHandles.get(key)?.remove();
-    notificationHandles.delete(key);
-  },
-};
+export const ZebraNotification = createZebraNotification(ZebraDataWedge);
 
 export const ZebraQuery = {
   enumerateScanners: async (): Promise<ZebraDeviceScanner[]> => (await ZebraDataWedge.enumerateScanners()).scanners,
