@@ -24,4 +24,17 @@ public class ReceiverCompatibilityTest extends DataWedgeTestSupport {
         assertNull(call.error);
         assertTrue(call.result.getBoolean("isEnabled", false));
     }
+
+    @Test
+    public void realReceiverAcceptsIdentifierFreeTypedRepliesWhenSenderIdentityIsUnavailable() {
+        Call call = new Call(new JSObject());
+        plugin.getDatawedgeStatus(call);
+        application.sendBroadcast(
+            new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled")
+        );
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(1, call.completions);
+        assertNull(call.error);
+        assertTrue(call.result.getBoolean("isEnabled", false));
+    }
 }

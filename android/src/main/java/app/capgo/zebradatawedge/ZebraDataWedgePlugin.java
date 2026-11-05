@@ -657,7 +657,7 @@ public class ZebraDataWedgePlugin extends Plugin {
             String commandId = intent.getStringExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER);
             PendingRequest request = commandId == null ? null : pendingRequests.get(commandId);
             if (request == null && commandId == null) {
-                if (!isTrustedDataWedgeSender(context, sentFromUid, sentFromPackage)) {
+                if (!allowIdentifierFreeQueryCorrelation(context, sentFromUid, sentFromPackage)) {
                     return;
                 }
                 for (Map.Entry<String, PendingRequest> entry : pendingRequests.entrySet()) {
@@ -687,6 +687,27 @@ public class ZebraDataWedgePlugin extends Plugin {
             notifyListeners("scan", payload);
             resolvePendingScan(intent.getAction(), payload);
         }
+    }
+
+    /**
+     * Identifier-free typed query replies use payload correlation, not sender authentication.
+     * When the platform exposes sender identity (API 34+), require the DataWedge package.
+     * When identity is unavailable (API 24-33, or API 34+ without shared identity), keep
+     * documented identifier-free compatibility and rely on ambiguity guards below. Residual
+     * spoofing risk for that mode is tracked in https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25
+     */
+    private boolean allowIdentifierFreeQueryCorrelation(Context context, int sentFromUid, String sentFromPackage) {
+        if (isTrustedDataWedgeSender(context, sentFromUid, sentFromPackage)) {
+            return true;
+        }
+        return isSenderIdentityUnavailable(sentFromUid, sentFromPackage);
+    }
+
+    private boolean isSenderIdentityUnavailable(int sentFromUid, String sentFromPackage) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return true;
+        }
+        return (sentFromUid == Process.INVALID_UID || sentFromUid == -1) && sentFromPackage == null;
     }
 
     private boolean isTrustedDataWedgeSender(Context context, int sentFromUid, String sentFromPackage) {
