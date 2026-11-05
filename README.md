@@ -157,11 +157,11 @@ console.log(result);
 
 ## Broadcast compatibility and security
 
-DataWedge can return typed query payloads without `COMMAND_IDENTIFIER`. The plugin correlates such a reply only when exactly one pending query expects its payload type. Unknown nonempty identifiers and ambiguous same-type queries do not use this fallback. Query correlation and payload validation are not sender authentication.
+DataWedge can return query results without `COMMAND_IDENTIFIER`. The plugin accepts such a result only when its payload type matches exactly one pending query. Avoid overlapping queries of the same type: replies without identifiers cannot reliably distinguish their owners. Replies with unknown nonempty identifiers are not assigned to another query.
 
-On Android 14/API 34 and later, identifier-free replies with available platform sender identity must match the DataWedge package. When identity is unavailable, including Android API 24–33, the plugin retains identifier-free query compatibility. That compatibility path can accept a forged type-correct reply from another installed app; it must not be treated as authenticated delivery. Replies with matching command identifiers, scan data and notification broadcasts also lack complete sender authentication.
+On Android 14/API 34 and later, identifier-free replies with available platform sender identity must identify the DataWedge package. When sender identity is unavailable, including on Android API 24–33, the plugin accepts matching identifier-free results for compatibility with DataWedge.
 
-[Issue #25](https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25) tracks authentication across all three channels, the Android/DataWedge compatibility policy and required device validation. This query transport fix does not resolve that issue.
+Query correlation and payload validation do not guarantee sender authenticity. When identity is unavailable, another installed app can inject a matching query result. Replies with matching command identifiers, scan data and notification broadcasts also lack complete sender authentication. See the [known sender-authentication limitations](https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25) for details.
 
 ## API
 
