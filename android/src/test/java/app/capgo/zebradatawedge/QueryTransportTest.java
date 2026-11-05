@@ -30,6 +30,23 @@ public class QueryTransportTest extends DataWedgeTestSupport {
     }
 
     @Test
+    public void availableUntrustedIdentityDoesNotUseTheUnavailableIdentityFallback() {
+        Call call = new Call(new JSObject());
+        plugin.getDatawedgeStatus(call);
+        Intent response = new Intent(ZebraDataWedge.RESULT_ACTION)
+            .putExtra(ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "enabled")
+            // An attacker-controlled extra must not override platform identity.
+            .putExtra("sentFromPackage", ZebraDataWedge.DATAWEDGE_PACKAGE);
+        plugin.deliverResultIntentForTest(application, response, android.os.Process.INVALID_UID, application.getPackageName());
+        assertEquals(0, call.completions);
+        plugin.deliverResultIntentForTest(application, response, 424242, null);
+        assertEquals(0, call.completions);
+        receive(response);
+        assertEquals(1, call.completions);
+        assertTrue(call.result.getBoolean("isEnabled", false));
+    }
+
+    @Test
     public void correlatedRepliesStillResolveWithoutSenderAuthentication() {
         Call call = new Call(new JSObject().put("profileName", profile));
         plugin.createProfile(call);
