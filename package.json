@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-zebra-datawedge",
-  "version": "8.2.1",
+  "version": "8.2.2",
   "description": "Capacitor plugin for Zebra DataWedge profile management, notifications, queries, and soft scanning on Zebra Android devices.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -38,7 +38,8 @@
     "verify": "bun run verify:ios && bun run verify:android && bun run verify:web",
     "verify:ios": "xcodebuild -scheme CapgoCapacitorZebraDatawedge -destination generic/platform=iOS",
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
-    "verify:web": "bun run build",
+    "verify:web": "bun run build && bun run test:web",
+    "test:web": "bun test tests",
     "lint": "bun run eslint && bun run prettier -- --check && bun run swiftlint -- lint",
     "fmt": "bun run eslint -- --fix && bun run prettier -- --write && bun run swiftlint -- --fix --format",
     "eslint": "eslint",

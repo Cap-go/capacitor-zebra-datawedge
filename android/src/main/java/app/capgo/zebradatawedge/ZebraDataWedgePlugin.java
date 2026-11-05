@@ -246,7 +246,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         options.putString(ZebraDataWedge.EXTRA_NOTIFICATION_TYPE, notificationType);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_REGISTER_FOR_NOTIFICATION, options);
-        sendCommand(call, intent, "register-for-notification", this::emptyResponse);
+        dispatchNotification(intent, call);
     }
 
     @PluginMethod
@@ -270,7 +270,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         options.putString(ZebraDataWedge.EXTRA_NOTIFICATION_TYPE, notificationType);
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_UNREGISTER_FOR_NOTIFICATION, options);
-        sendCommand(call, intent, "unregister-for-notification", this::emptyResponse);
+        dispatchNotification(intent, call);
     }
 
     @PluginMethod
@@ -295,6 +295,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
         Bundle options = new Bundle();
         options.putString("PROFILE_NAME", profileName);
+        options.putString("APP_LIST", ""); // Associations are returned only when explicitly requested.
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_GET_CONFIG, options);
         sendCommand(call, intent, "get-associated-apps", (response) -> {
@@ -313,6 +314,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
         Bundle options = new Bundle();
         options.putString("PROFILE_NAME", profileName);
+        options.putString("APP_LIST", ""); // Associations are returned only when explicitly requested.
         JSONArray pluginConfigs = call.getArray("pluginConfigs");
         if (pluginConfigs != null && pluginConfigs.length() > 0) {
             ArrayList<Bundle> bundles = new ArrayList<>();
@@ -764,6 +766,16 @@ public class ZebraDataWedgePlugin extends Plugin {
         return new String[0];
     }
 
+    private void dispatchNotification(Intent intent, PluginCall call) {
+        try {
+            getContext().sendBroadcast(intent);
+        } catch (Exception exception) {
+            call.reject("DataWedge notification transport failed.", "DATAWEDGE_TRANSPORT", exception);
+            return;
+        }
+        call.resolve();
+    }
+
     private void sendBroadcast(Intent intent, PluginCall call) {
         try {
             getContext().sendBroadcast(intent);
@@ -957,7 +969,14 @@ public class ZebraDataWedgePlugin extends Plugin {
             }
             JSObject item = new JSObject();
             item.put("packageName", app.getString("PACKAGE_NAME"));
-            item.put("activityList", ZebraDataWedge.stringArrayToJSArray(app.getStringArray("ACTIVITY_LIST")));
+            Object activities = app.get("ACTIVITY_LIST");
+            if (activities instanceof String[]) {
+                item.put("activityList", ZebraDataWedge.stringArrayToJSArray((String[]) activities));
+            } else if (activities instanceof ArrayList<?>) {
+                item.put("activityList", ZebraDataWedge.listToJSArray((ArrayList<?>) activities));
+            } else {
+                item.put("activityList", new JSArray());
+            }
             result.put(item);
         }
         return result;
@@ -1037,10 +1056,11 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private ArrayList<Bundle> extractAppList(Bundle bundle) {
         Object raw = bundle.get("APP_LIST");
-        if (raw instanceof Bundle[]) {
-            Bundle[] values = (Bundle[]) raw;
+        if (raw instanceof android.os.Parcelable[]) {
             ArrayList<Bundle> result = new ArrayList<>();
-            Collections.addAll(result, values);
+            for (android.os.Parcelable value : (android.os.Parcelable[]) raw) {
+                if (value instanceof Bundle) result.add((Bundle) value);
+            }
             return result;
         }
         if (raw instanceof ArrayList<?>) {
@@ -1067,9 +1087,11 @@ public class ZebraDataWedgePlugin extends Plugin {
                 }
                 return result;
             }
-            if (raw instanceof Bundle[]) {
+            if (raw instanceof android.os.Parcelable[]) {
                 ArrayList<Bundle> result = new ArrayList<>();
-                Collections.addAll(result, (Bundle[]) raw);
+                for (android.os.Parcelable value : (android.os.Parcelable[]) raw) {
+                    if (value instanceof Bundle) result.add((Bundle) value);
+                }
                 return result;
             }
         }
