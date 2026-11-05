@@ -250,8 +250,12 @@ export interface IgnoreDisabledProfilesResult {
 export interface BeginScanSessionOptions {
   /** Existing profile associated exclusively with this application. No naming suffix is required. */
   profileName: string;
-  /** Native lease deadline, 1..600000 ms. Default: 35000. Starts after association validation. */
+  /** Absolute session duration, 1..600000 ms. Default: 300000 (five minutes). Renewal never extends it. */
   timeoutMs?: number;
+  /** Native liveness deadline, 2000..60000 ms. Default: 10000. Starts after association validation. */
+  leaseTimeoutMs?: number;
+  /** Advanced use only: disable the built-in JS heartbeat and call renewScanSession yourself. Default: true. */
+  autoRenew?: boolean;
 }
 
 export interface ScanSession {
@@ -260,18 +264,35 @@ export interface ScanSession {
   /** Configure this action in the profile's INTENT output before triggering. */
   intentAction: string;
   timeoutMs: number;
+  leaseTimeoutMs: number;
+}
+
+export interface ScanSessionState {
+  sessionId: string;
+  active: boolean;
+  /** Present after closure; does not mean cleanup was acknowledged by DataWedge. */
+  reason?: 'ended' | 'background' | 'destroyed' | 'heartbeat_expired' | 'max_duration';
+  /** Milliseconds until the earlier native deadline; zero when closing. */
+  remainingMs: number;
 }
 
 export interface ZebraDataWedgePlugin extends Plugin {
   /** Read-only native session API negotiation. Does not send a DataWedge command. */
-  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean }>;
+  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean }>;
   /**
    * Validate an existing app-owned profile and acquire an opt-in exclusive native session.
+   * Automatically renews the native liveness lease from JS until end, native closure, page hiding,
+   * renewal failure or the absolute timeout. Application completion/cancellation must still call end.
+   * Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
    * The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
    * Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
    * this process. Other low-level APIs are unchanged and must not mutate an active session's profile.
    */
   beginScanSession(options: BeginScanSessionOptions): Promise<ScanSession>;
+  /** Advanced manual renewal; normally called internally. Cannot revive an expired/closing session. */
+  renewScanSession(options: { sessionId: string }): Promise<ScanSessionState>;
+  /** Inspect the matching session, including closure reason. Does not renew or confirm cleanup. */
+  getScanSessionState(options: { sessionId: string }): Promise<ScanSessionState>;
   /** Verify the active profile, then dispatch START_SCANNING for a foreground session. Scan values arrive via the scan event. */
   triggerScanSession(options: { sessionId: string }): Promise<void>;
   /**
@@ -448,6 +469,11 @@ export interface ZebraDataWedgePlugin extends Plugin {
   switchScannerParams(options: SwitchScannerParamsOptions): Promise<void>;
   switchToProfile(options: { profileName: string }): Promise<void>;
   getPluginVersion(): Promise<PluginVersionResult>;
+  /** Native best-effort closure notification. Always explicitly end to confirm hardware cleanup. */
+  addListener(
+    eventName: 'scanSessionClosed',
+    listenerFunc: (event: ScanSessionState) => void,
+  ): Promise<PluginListenerHandle>;
   addListener(eventName: 'scan', listenerFunc: (event: ZebraScanResult) => void): Promise<PluginListenerHandle>;
   addListener(
     eventName: 'notification',

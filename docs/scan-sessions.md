@@ -7,7 +7,8 @@ The caller supplies the existing profile name. The profile must already be assoc
 ```ts
 const session = await ZebraDataWedge.beginScanSession({
   profileName: 'WarehousePicking',
-  timeoutMs: 35000,
+  timeoutMs: 300000, // Absolute duration; optional, default five minutes.
+  leaseTimeoutMs: 10000, // Renewable native deadline; optional, default ten seconds.
 });
 
 try {
@@ -34,3 +35,19 @@ Once a profile has been enrolled in a session, `setConfig` requires the matching
 The feature does not persist enrollment or run guessed profile repair at startup. Android can kill a process without lifecycle callbacks. Applications requiring recovery after process death must retain and validate their own recovery policy until a separate persistence contract is implemented. Package-prefix conventions alone are not proof of profile ownership.
 
 The generalized implementation is covered by native intent-fixture tests, including cancellation races and cleanup failure. Real DataWedge firmware, scanner readiness and managed-device policy still require device acceptance testing.
+
+## Automatic heartbeat and deadlines
+
+`beginScanSession` starts a built-in JavaScript heartbeat. It sends a local native renewal one second after each previous acknowledgement, with at most one renewal in flight. Renewals do not send DataWedge commands or extend the absolute `timeoutMs` limit. Raw scanner events and physical triggers do not renew the deadline: scanner activity is not proof that JavaScript is responding.
+
+The controller stops on explicit end, page hiding/pagehide, native closure, renewal failure or the absolute duration limit. Page hiding and failed renewal attempt best-effort end. It also handles a page disappearing during asynchronous begin and cleans up a late token. Native pause/destroy handling stays independent of JavaScript. Resume never revives an ended session.
+
+You still need to call and await `endScanSession` when your workflow completes or is cancelled, including application-specific SPA navigation. The plugin cannot infer those application intentions. Best-effort automatic cleanup is not a confirmed camera handoff; failed end remains retryable.
+
+`timeoutMs` is the absolute duration (default 300000, range 1..600000 ms). `leaseTimeoutMs` is the renewable native liveness deadline (default 10000, range 2000..60000 ms). Both start after association validation; the earlier deadline wins. These deadlines are independent of scanner readiness and the scanner's own illumination/decode timeout.
+
+`getScanSessionCapabilities()` returns version 2 and `renewableLease: true`. Applications shipping JavaScript independently of native binaries must negotiate support before adopting this API. Older native implementations do not gain renewal support through a web update.
+
+Listen for `scanSessionClosed` to distinguish `heartbeat_expired`, `max_duration`, `background`, `destroyed` and explicit `ended`. This event reports logical closure, not acknowledged hardware release. `getScanSessionState({ sessionId })` can inspect a matching active/closing session after a missed event without renewing it. After acknowledged end, state inspection rejects for that token. Keep any collected batch results outside the native lease if a new lease is needed.
+
+For advanced environments only, `autoRenew: false` disables the built-in heartbeat and makes the caller responsible for `renewScanSession({ sessionId })`. Page/native-closure handling and the absolute JS resource timer remain active. Ordinary integrations should retain automatic renewal. Neither form of renewal can revive an expired lease or bypass unconfirmed cleanup.

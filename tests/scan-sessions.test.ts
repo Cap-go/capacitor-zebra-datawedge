@@ -11,6 +11,8 @@ describe('scan session platform availability', () => {
     expect(() => plugin.beginScanSession({ profileName: 'ExistingProfile' })).toThrow('only available on Android');
   });
   it('rejects trigger and end on web', () => {
+    expect(() => plugin.renewScanSession({ sessionId: 'example' })).toThrow('only available on Android');
+    expect(() => plugin.getScanSessionState({ sessionId: 'example' })).toThrow('only available on Android');
     expect(() => plugin.triggerScanSession({ sessionId: 'example' })).toThrow('only available on Android');
     expect(() => plugin.endScanSession({ sessionId: 'example' })).toThrow('only available on Android');
   });

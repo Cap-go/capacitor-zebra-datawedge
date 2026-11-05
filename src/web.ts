@@ -4,6 +4,7 @@ import type {
   CloneProfileOptions,
   BeginScanSessionOptions,
   ScanSession,
+  ScanSessionState,
   CreateProfileOptions,
   DataWedgeNotifyOptions,
   DataWedgeStatusResult,
@@ -30,10 +31,16 @@ const unavailable = (...args: unknown[]) => {
 };
 
 export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin {
-  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean }> {
+  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean }> {
     return unavailable();
   }
   beginScanSession(options: BeginScanSessionOptions): Promise<ScanSession> {
+    return unavailable(options);
+  }
+  renewScanSession(options: { sessionId: string }): Promise<ScanSessionState> {
+    return unavailable(options);
+  }
+  getScanSessionState(options: { sessionId: string }): Promise<ScanSessionState> {
     return unavailable(options);
   }
   triggerScanSession(options: { sessionId: string }): Promise<void> {

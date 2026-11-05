@@ -169,6 +169,8 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 
 - [`getScanSessionCapabilities()`](#getscansessioncapabilities)
 - [`beginScanSession(...)`](#beginscansession)
+- [`renewScanSession(...)`](#renewscansession)
+- [`getScanSessionState(...)`](#getscansessionstate)
 - [`triggerScanSession(...)`](#triggerscansession)
 - [`endScanSession(...)`](#endscansession)
 - [`cloneProfile(...)`](#cloneprofile)
@@ -208,6 +210,7 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 - [`switchScannerParams(...)`](#switchscannerparams)
 - [`switchToProfile(...)`](#switchtoprofile)
 - [`getPluginVersion()`](#getpluginversion)
+- [`addListener('scanSessionClosed', ...)`](#addlistenerscansessionclosed-)
 - [`addListener('scan', ...)`](#addlistenerscan-)
 - [`addListener('notification', ...)`](#addlistenernotification-)
 - [Interfaces](#interfaces)
@@ -222,12 +225,12 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 ### getScanSessionCapabilities()
 
 ```typescript
-getScanSessionCapabilities() => Promise<{ version: number; customProfileNames: boolean; }>
+getScanSessionCapabilities() => Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean; }>
 ```
 
 Read-only native session API negotiation. Does not send a DataWedge command.
 
-**Returns:** <code>Promise&lt;{ version: number; customProfileNames: boolean; }&gt;</code>
+**Returns:** <code>Promise&lt;{ version: number; customProfileNames: boolean; renewableLease: boolean; }&gt;</code>
 
 ---
 
@@ -238,6 +241,9 @@ beginScanSession(options: BeginScanSessionOptions) => Promise<ScanSession>
 ```
 
 Validate an existing app-owned profile and acquire an opt-in exclusive native session.
+Automatically renews the native liveness lease from JS until end, native closure, page hiding,
+renewal failure or the absolute timeout. Application completion/cancellation must still call end.
+Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
 The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
 Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
 this process. Other low-level APIs are unchanged and must not mutate an active session's profile.
@@ -247,6 +253,38 @@ this process. Other low-level APIs are unchanged and must not mutate an active s
 | **`options`** | <code><a href="#beginscansessionoptions">BeginScanSessionOptions</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#scansession">ScanSession</a>&gt;</code>
+
+---
+
+### renewScanSession(...)
+
+```typescript
+renewScanSession(options: { sessionId: string; }) => Promise<ScanSessionState>
+```
+
+Advanced manual renewal; normally called internally. Cannot revive an expired/closing session.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+**Returns:** <code>Promise&lt;<a href="#scansessionstate">ScanSessionState</a>&gt;</code>
+
+---
+
+### getScanSessionState(...)
+
+```typescript
+getScanSessionState(options: { sessionId: string; }) => Promise<ScanSessionState>
+```
+
+Inspect the matching session, including closure reason. Does not renew or confirm cleanup.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+**Returns:** <code>Promise&lt;<a href="#scansessionstate">ScanSessionState</a>&gt;</code>
 
 ---
 
@@ -803,6 +841,23 @@ getPluginVersion() => Promise<PluginVersionResult>
 
 ---
 
+### addListener('scanSessionClosed', ...)
+
+```typescript
+addListener(eventName: 'scanSessionClosed', listenerFunc: (event: ScanSessionState) => void) => Promise<PluginListenerHandle>
+```
+
+Native best-effort closure notification. Always explicitly end to confirm hardware cleanup.
+
+| Param              | Type                                                                              |
+| ------------------ | --------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'scanSessionClosed'</code>                                                  |
+| **`listenerFunc`** | <code>(event: <a href="#scansessionstate">ScanSessionState</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+---
+
 ### addListener('scan', ...)
 
 ```typescript
@@ -837,19 +892,31 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 #### ScanSession
 
-| Prop               | Type                | Description                                                             |
-| ------------------ | ------------------- | ----------------------------------------------------------------------- |
-| **`sessionId`**    | <code>string</code> |                                                                         |
-| **`profileName`**  | <code>string</code> |                                                                         |
-| **`intentAction`** | <code>string</code> | Configure this action in the profile's INTENT output before triggering. |
-| **`timeoutMs`**    | <code>number</code> |                                                                         |
+| Prop                 | Type                | Description                                                             |
+| -------------------- | ------------------- | ----------------------------------------------------------------------- |
+| **`sessionId`**      | <code>string</code> |                                                                         |
+| **`profileName`**    | <code>string</code> |                                                                         |
+| **`intentAction`**   | <code>string</code> | Configure this action in the profile's INTENT output before triggering. |
+| **`timeoutMs`**      | <code>number</code> |                                                                         |
+| **`leaseTimeoutMs`** | <code>number</code> |                                                                         |
 
 #### BeginScanSessionOptions
 
-| Prop              | Type                | Description                                                                                  |
-| ----------------- | ------------------- | -------------------------------------------------------------------------------------------- |
-| **`profileName`** | <code>string</code> | Existing profile associated exclusively with this application. No naming suffix is required. |
-| **`timeoutMs`**   | <code>number</code> | Native lease deadline, 1..600000 ms. Default: 35000. Starts after association validation.    |
+| Prop                 | Type                 | Description                                                                                             |
+| -------------------- | -------------------- | ------------------------------------------------------------------------------------------------------- |
+| **`profileName`**    | <code>string</code>  | Existing profile associated exclusively with this application. No naming suffix is required.            |
+| **`timeoutMs`**      | <code>number</code>  | Absolute session duration, 1..600000 ms. Default: 300000 (five minutes). Renewal never extends it.      |
+| **`leaseTimeoutMs`** | <code>number</code>  | Native liveness deadline, 2000..60000 ms. Default: 10000. Starts after association validation.          |
+| **`autoRenew`**      | <code>boolean</code> | Advanced use only: disable the built-in JS heartbeat and call renewScanSession yourself. Default: true. |
+
+#### ScanSessionState
+
+| Prop              | Type                                                                                         | Description                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **`sessionId`**   | <code>string</code>                                                                          |                                                                             |
+| **`active`**      | <code>boolean</code>                                                                         |                                                                             |
+| **`reason`**      | <code>'ended' \| 'background' \| 'destroyed' \| 'heartbeat_expired' \| 'max_duration'</code> | Present after closure; does not mean cleanup was acknowledged by DataWedge. |
+| **`remainingMs`** | <code>number</code>                                                                          | Milliseconds until the earlier native deadline; zero when closing.          |
 
 #### CloneProfileOptions
 

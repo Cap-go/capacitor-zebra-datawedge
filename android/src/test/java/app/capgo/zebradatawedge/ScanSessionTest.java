@@ -52,7 +52,8 @@ public class ScanSessionTest extends DataWedgeTestSupport {
         int count = broadcasts().size();
         Call call = new Call(new JSObject());
         plugin.getScanSessionCapabilities(call);
-        assertEquals(1, call.result.optInt("version"));
+        assertEquals(2, call.result.optInt("version"));
+        assertTrue(call.result.optBoolean("renewableLease"));
         assertEquals(count, broadcasts().size());
     }
 
@@ -253,5 +254,163 @@ public class ScanSessionTest extends DataWedgeTestSupport {
                 .stream()
                 .anyMatch((i) -> "START_SCANNING".equals(i.getStringExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER)))
         );
+    }
+
+    @Test
+    public void renewalExtendsLivenessWithoutBroadcastsButNotAbsoluteDeadline() {
+        Call begun = begin(25000);
+        int count = broadcasts().size();
+        for (int i = 0; i < 3; i++) {
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(7));
+            Call renew = token(begun);
+            plugin.renewScanSession(renew);
+            assertNull(renew.error);
+            assertTrue(renew.result.optBoolean("active"));
+            assertEquals(count, broadcasts().size());
+        }
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(4));
+        Call state = token(begun);
+        plugin.getScanSessionState(state);
+        assertFalse(state.result.optBoolean("active"));
+        assertEquals("max_duration", state.result.optString("reason"));
+        assertTargetedDisable(lastBroadcast());
+    }
+
+    @Test
+    public void missingHeartbeatExpiresBeforeAbsoluteDeadlineAndCannotRevive() {
+        Call begun = begin(300000);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10));
+        Call renew = token(begun);
+        plugin.renewScanSession(renew);
+        assertEquals("SESSION_INACTIVE", renew.error);
+        Call state = token(begun);
+        plugin.getScanSessionState(state);
+        assertEquals("heartbeat_expired", state.result.optString("reason"));
+        assertEquals(0L, state.result.optLong("remainingMs"));
+        assertTargetedDisable(lastBroadcast());
+    }
+
+    @Test
+    public void renewalChecksExpiredClockEvenBeforeHandlerRunnableExecutes() {
+        Call begun = begin(300000);
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(Duration.ofSeconds(11));
+        Call renew = token(begun);
+        plugin.renewScanSession(renew);
+        assertEquals("SESSION_INACTIVE", renew.error);
+        assertTargetedDisable(lastBroadcast());
+    }
+
+    @Test
+    public void lateActiveProfileAcknowledgementCannotTriggerAnExpiredLease() {
+        Call begun = begin(300000);
+        Call trigger = token(begun);
+        plugin.triggerScanSession(trigger);
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(Duration.ofSeconds(11));
+        // Deliver directly before the delayed timeout callbacks get a chance to run.
+        Intent reply = new Intent(ZebraDataWedge.RESULT_ACTION)
+            .putExtra(ZebraDataWedge.RESULT_GET_ACTIVE_PROFILE, profile)
+            .putExtra("COMMAND_IDENTIFIER", lastBroadcast().getStringExtra("COMMAND_IDENTIFIER"));
+        plugin.deliverResultIntentForTest(application, reply, android.os.Process.myUid(), ZebraDataWedge.DATAWEDGE_PACKAGE);
+        assertEquals("SESSION_CANCELLED", trigger.error);
+        assertFalse(
+            broadcasts()
+                .stream()
+                .anyMatch((i) -> "START_SCANNING".equals(i.getStringExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER)))
+        );
+    }
+
+    @Test
+    public void oldTokenCannotRenewReplacementSession() {
+        Call first = begin(300000);
+        plugin.endScanSession(token(first));
+        receive(resultFor(lastBroadcast()));
+        Call second = begin(300000);
+        Call stale = token(first);
+        plugin.renewScanSession(stale);
+        assertEquals("SESSION_INACTIVE", stale.error);
+        Call renew = token(second);
+        plugin.renewScanSession(renew);
+        assertTrue(renew.result.optBoolean("active"));
+    }
+
+    @Test
+    public void pauseAndResumeNeverRenewOrReopenTheLease() {
+        Call begun = begin(300000);
+        plugin.pause();
+        plugin.resume();
+        Call renew = token(begun);
+        plugin.renewScanSession(renew);
+        assertEquals("SESSION_INACTIVE", renew.error);
+        Call state = token(begun);
+        plugin.getScanSessionState(state);
+        assertEquals("background", state.result.optString("reason"));
+    }
+
+    @Test
+    public void heartbeatBoundsAreValidatedBeforeAnyDataWedgeCommand() {
+        int count = broadcasts().size();
+        for (int timeout : new int[] { 0, 1999, 60001 }) {
+            Call invalid = new Call(new JSObject().put("profileName", profile).put("leaseTimeoutMs", timeout));
+            plugin.beginScanSession(invalid);
+            assertEquals("PARAMETER_INVALID", invalid.error);
+        }
+        assertEquals(count, broadcasts().size());
+    }
+
+    @Test
+    public void readOnlyStateAndNativeScansDoNotExtendLiveness() {
+        Call begun = begin(300000);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(6));
+        Call state = token(begun);
+        plugin.getScanSessionState(state);
+        assertTrue(state.result.optBoolean("active"));
+        receive(new Intent(begun.result.getString("intentAction")).putExtra(ZebraDataWedge.EXTRA_SCAN_DATA, "test"));
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(4));
+        Call expired = token(begun);
+        plugin.getScanSessionState(expired);
+        assertEquals("heartbeat_expired", expired.result.optString("reason"));
+    }
+
+    @Test
+    public void nativeClosureReportsItsFirstReasonOnceWithoutConfirmingCleanup() {
+        plugin.destroy();
+        final ArrayList<JSObject> events = new ArrayList<>();
+        plugin = new TestPlugin() {
+            @Override
+            protected void notifyListeners(String name, JSObject payload) {
+                if ("scanSessionClosed".equals(name)) events.add(payload);
+            }
+        };
+        plugin.load();
+        Call begun = begin(300000);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10));
+        assertEquals(1, events.size());
+        assertEquals(begun.result.getString("sessionId"), events.get(0).optString("sessionId"));
+        assertFalse(events.get(0).optBoolean("active"));
+        assertEquals("heartbeat_expired", events.get(0).optString("reason"));
+        plugin.pause();
+        plugin.resume();
+        Call end = token(begun);
+        plugin.endScanSession(end);
+        assertEquals(1, events.size());
+        assertEquals(0, end.completions);
+        receive(resultFor(lastBroadcast()));
+        assertTrue(end.result.optBoolean("confirmed"));
+    }
+
+    @Test
+    public void renewalIsIndependentOfPendingDataWedgeConfiguration() {
+        Call begun = begin(300000);
+        Call config = new Call(new JSObject().put("profileName", profile).put("sessionId", begun.result.getString("sessionId")));
+        plugin.setConfig(config);
+        int count = broadcasts().size();
+        Call renewal = token(begun);
+        plugin.renewScanSession(renewal);
+        assertEquals(1, renewal.completions);
+        assertTrue(renewal.result.optBoolean("active"));
+        assertEquals(0, config.completions);
+        assertEquals(count, broadcasts().size());
+        receive(resultFor(lastBroadcast()));
+        assertNull(config.error);
     }
 }
