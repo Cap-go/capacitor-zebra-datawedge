@@ -373,6 +373,13 @@ Dispose of local listeners separately when using the low-level API.
 enumerateScanners() => Promise<{ scanners: ZebraDeviceScanner[]; }>
 ```
 
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
+
 **Returns:** <code>Promise&lt;{ scanners: ZebraDeviceScanner[]; }&gt;</code>
 
 ---
@@ -383,6 +390,13 @@ enumerateScanners() => Promise<{ scanners: ZebraDeviceScanner[]; }>
 getActiveProfile() => Promise<{ profileName: string; }>
 ```
 
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
+
 **Returns:** <code>Promise&lt;{ profileName: string; }&gt;</code>
 
 ---
@@ -392,6 +406,13 @@ getActiveProfile() => Promise<{ profileName: string; }>
 ```typescript
 getAssociatedApps(options: { profileName: string; }) => Promise<{ appList: DataWedgeAppConfig[]; }>
 ```
+
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 | Param         | Type                                  |
 | ------------- | ------------------------------------- |
@@ -407,6 +428,13 @@ getAssociatedApps(options: { profileName: string; }) => Promise<{ appList: DataW
 getConfig(options: GetConfigOptions) => Promise<ZebraProfileConfiguration>
 ```
 
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
+
 | Param         | Type                                                          |
 | ------------- | ------------------------------------------------------------- |
 | **`options`** | <code><a href="#getconfigoptions">GetConfigOptions</a></code> |
@@ -421,6 +449,13 @@ getConfig(options: GetConfigOptions) => Promise<ZebraProfileConfiguration>
 getDatawedgeStatus() => Promise<DataWedgeStatusResult>
 ```
 
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
+
 **Returns:** <code>Promise&lt;<a href="#datawedgestatusresult">DataWedgeStatusResult</a>&gt;</code>
 
 ---
@@ -430,6 +465,13 @@ getDatawedgeStatus() => Promise<DataWedgeStatusResult>
 ```typescript
 getDisabledAppList() => Promise<{ appList: DataWedgeAppConfig[]; }>
 ```
+
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ appList: DataWedgeAppConfig[]; }&gt;</code>
 
@@ -441,6 +483,13 @@ getDisabledAppList() => Promise<{ appList: DataWedgeAppConfig[]; }>
 getIgnoreDisabledProfiles() => Promise<IgnoreDisabledProfilesResult>
 ```
 
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
+
 **Returns:** <code>Promise&lt;<a href="#ignoredisabledprofilesresult">IgnoreDisabledProfilesResult</a>&gt;</code>
 
 ---
@@ -450,6 +499,13 @@ getIgnoreDisabledProfiles() => Promise<IgnoreDisabledProfilesResult>
 ```typescript
 getProfilesList() => Promise<{ profiles: string[]; }>
 ```
+
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ profiles: string[]; }&gt;</code>
 
@@ -461,6 +517,13 @@ getProfilesList() => Promise<{ profiles: string[]; }>
 getScannerStatus() => Promise<{ status: ScannerStatus | string; }>
 ```
 
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
+
 **Returns:** <code>Promise&lt;{ status: string; }&gt;</code>
 
 ---
@@ -470,6 +533,13 @@ getScannerStatus() => Promise<{ status: ScannerStatus | string; }>
 ```typescript
 getVersionInfo() => Promise<ZebraDeviceVersionInfo>
 ```
+
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;<a href="#zebradeviceversioninfo">ZebraDeviceVersionInfo</a>&gt;</code>
 
@@ -512,6 +582,13 @@ enableScannerInput() => Promise<void>
 ```typescript
 enumerateTriggers() => Promise<{ triggers: string[]; }>
 ```
+
+Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
+identifier-free replies only when the payload matches exactly one pending call of this kind;
+avoid overlapping calls of the same type. When sender identity is unavailable (Android API
+24–33, or API 34+ when the platform withholds it), matching identifier-free replies are
+accepted for compatibility. This default may change in the next Capacitor major version; see
+https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ triggers: string[]; }&gt;</code>
 
