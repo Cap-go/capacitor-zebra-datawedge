@@ -157,9 +157,9 @@ console.log(result);
 
 ## Broadcast compatibility and security
 
-DataWedge can return query results without `COMMAND_IDENTIFIER`. The plugin accepts such a result only when its payload type matches exactly one pending query. Avoid overlapping queries of the same type: replies without identifiers cannot reliably distinguish their owners. Replies with unknown nonempty identifiers are not assigned to another query.
+DataWedge can return query results without `COMMAND_IDENTIFIER`. The plugin accepts such a result only when its payload type matches exactly one pending query that expects that payload shape. Avoid overlapping pending calls that share the same result payload shape: replies without identifiers cannot reliably distinguish their owners. For example, `getAssociatedApps()` and `getConfig()` both send `CMD_GET_CONFIG` and expect `CONFIG_RESULTS`, so one pending call to each still overlaps. If a query times out, a delayed identifier-free reply to the timed-out query can still match a later sequential call that expects the same payload shape and resolve it with stale data. Replies with unknown nonempty identifiers are not assigned to another query.
 
-On Android 14/API 34 and later, identifier-free replies that share platform sender identity must identify the DataWedge package. A sender can withhold its identity on API 34 and later, and the plugin then accepts matching identifier-free results. Identity is also unavailable on Android API 24-33, where the plugin accepts matching identifier-free results for compatibility with DataWedge.
+On Android 14/API 34 and later, identifier-free replies that share platform sender identity must identify the DataWedge package. A sender can withhold its identity on API 34 and later, and the plugin then accepts matching identifier-free results. Identity is also unavailable on Android API 24 to 33, where the plugin accepts matching identifier-free results for compatibility with DataWedge.
 
 Query correlation and payload validation do not guarantee sender authenticity. Any installed app can inject a matching identifier-free query result on every Android version, including by withholding its identity on API 34 and later. Replies with matching command identifiers, scan data and notification broadcasts also lack complete sender authentication. See the [known sender-authentication limitations](https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25) for details.
 
@@ -374,10 +374,12 @@ enumerateScanners() => Promise<{ scanners: ZebraDeviceScanner[]; }>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ scanners: ZebraDeviceScanner[]; }&gt;</code>
@@ -391,10 +393,12 @@ getActiveProfile() => Promise<{ profileName: string; }>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ profileName: string; }&gt;</code>
@@ -408,10 +412,14 @@ getAssociatedApps(options: { profileName: string; }) => Promise<{ appList: DataW
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. For example,
+`getAssociatedApps()` and `getConfig()` both send `CMD_GET_CONFIG` and expect `CONFIG_RESULTS`, so one
+pending call to each overlaps. When sender identity is unavailable (Android API 24 to 33, or API
+34+ when the platform withholds it), matching identifier-free replies are accepted for
+compatibility. If a call times out, a delayed identifier-free reply can still match a later
+sequential call that expects the same shape and resolve it with stale data. This default may
+change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 | Param         | Type                                  |
@@ -429,10 +437,14 @@ getConfig(options: GetConfigOptions) => Promise<ZebraProfileConfiguration>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. For example,
+`getAssociatedApps()` and `getConfig()` both send `CMD_GET_CONFIG` and expect `CONFIG_RESULTS`, so one
+pending call to each overlaps. When sender identity is unavailable (Android API 24 to 33, or API
+34+ when the platform withholds it), matching identifier-free replies are accepted for
+compatibility. If a call times out, a delayed identifier-free reply can still match a later
+sequential call that expects the same shape and resolve it with stale data. This default may
+change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 | Param         | Type                                                          |
@@ -450,10 +462,12 @@ getDatawedgeStatus() => Promise<DataWedgeStatusResult>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;<a href="#datawedgestatusresult">DataWedgeStatusResult</a>&gt;</code>
@@ -467,10 +481,12 @@ getDisabledAppList() => Promise<{ appList: DataWedgeAppConfig[]; }>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ appList: DataWedgeAppConfig[]; }&gt;</code>
@@ -484,10 +500,12 @@ getIgnoreDisabledProfiles() => Promise<IgnoreDisabledProfilesResult>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;<a href="#ignoredisabledprofilesresult">IgnoreDisabledProfilesResult</a>&gt;</code>
@@ -501,10 +519,12 @@ getProfilesList() => Promise<{ profiles: string[]; }>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ profiles: string[]; }&gt;</code>
@@ -518,10 +538,12 @@ getScannerStatus() => Promise<{ status: ScannerStatus | string; }>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ status: string; }&gt;</code>
@@ -535,10 +557,12 @@ getVersionInfo() => Promise<ZebraDeviceVersionInfo>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;<a href="#zebradeviceversioninfo">ZebraDeviceVersionInfo</a>&gt;</code>
@@ -584,10 +608,12 @@ enumerateTriggers() => Promise<{ triggers: string[]; }>
 ```
 
 Android only. DataWedge may omit `COMMAND_IDENTIFIER` on query replies. The plugin accepts
-identifier-free replies only when the payload matches exactly one pending call of this kind;
-avoid overlapping calls of the same type. When sender identity is unavailable (Android API
-24-33, or API 34+ when the platform withholds it), matching identifier-free replies are
-accepted for compatibility. This default may change in the next Capacitor major version; see
+identifier-free replies only when the payload matches exactly one pending call that expects the
+same result payload shape. Avoid overlapping pending calls that share that shape. When sender
+identity is unavailable (Android API 24 to 33, or API 34+ when the platform withholds it),
+matching identifier-free replies are accepted for compatibility. If a call times out, a delayed
+identifier-free reply can still match a later sequential call that expects the same shape and
+resolve it with stale data. This default may change in the next Capacitor major version; see
 https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25/.
 
 **Returns:** <code>Promise&lt;{ triggers: string[]; }&gt;</code>
