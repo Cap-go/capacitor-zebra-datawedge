@@ -79,7 +79,7 @@ public final class ZebraDataWedge {
     public static final String RESULT_GET_DATAWEDGE_STATUS = "com.symbol.datawedge.api.RESULT_GET_DATAWEDGE_STATUS";
     public static final String RESULT_GET_DISABLED_APP_LIST = "com.symbol.datawedge.api.RESULT_GET_DISABLED_APP_LIST";
     public static final String RESULT_GET_IGNORE_DISABLED_PROFILES = "com.symbol.datawedge.api.RESULT_GET_IGNORE_DISABLED_PROFILES";
-    public static final String RESULT_GET_SCANNER_STATUS = "com.symbol.datawedge.api.RESULT_GET_SCANNER_STATUS";
+    public static final String RESULT_GET_SCANNER_STATUS = "com.symbol.datawedge.api.RESULT_SCANNER_STATUS";
     public static final String RESULT_ENUMERATE_SCANNERS = "com.symbol.datawedge.api.RESULT_ENUMERATE_SCANNERS";
     public static final String RESULT_ENUMERATED_SCANNER_LIST = "DWAPI_KEY_ENUMERATEDSCANNERLIST";
     public static final String RESULT_ENUMERATE_TRIGGERS = "com.symbol.datawedge.api.RESULT_ENUMERATE_TRIGGERS";

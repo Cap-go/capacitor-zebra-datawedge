@@ -4,9 +4,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Process;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -15,6 +17,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,6 +34,28 @@ public class ZebraDataWedgePlugin extends Plugin {
     private static final String PLUGIN_VERSION = "8.0.0";
     private static final long REQUEST_TIMEOUT_MS = 8000L;
     private static final long SCAN_TIMEOUT_MS = 15000L;
+
+    // Correlation and parsing share the same keys, including documented alternatives and existing fallbacks.
+    private static final String[] ACTIVE_PROFILE_RESULTS = { ZebraDataWedge.RESULT_GET_ACTIVE_PROFILE, "PROFILE_NAME" };
+    private static final String[] CONFIG_RESULTS = {
+        ZebraDataWedge.RESULT_GET_CONFIG,
+        "com.symbol.datawedge.api.GET_CONFIG_RESULT",
+        ZebraDataWedge.RESULT_GET_CONFIG_LEGACY
+    };
+    private static final String[] DATAWEDGE_STATUS_RESULTS = { ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "DATAWEDGE_STATUS" };
+    private static final String[] PROFILES_LIST_RESULTS = { ZebraDataWedge.RESULT_GET_PROFILES_LIST };
+    private static final String[] SCANNER_STATUS_RESULTS = { ZebraDataWedge.RESULT_GET_SCANNER_STATUS, "SCANNER_STATUS" };
+    private static final String[] VERSION_INFO_RESULTS = { ZebraDataWedge.RESULT_GET_VERSION_INFO, "GET_VERSION_INFO_RESULT" };
+    private static final String[] DISABLED_APPS_RESULTS = { ZebraDataWedge.RESULT_GET_DISABLED_APP_LIST };
+    private static final String[] IGNORE_DISABLED_RESULTS = {
+        ZebraDataWedge.RESULT_GET_IGNORE_DISABLED_PROFILES,
+        "IGNORE_DISABLED_PROFILES"
+    };
+    private static final String[] TRIGGER_RESULTS = { ZebraDataWedge.RESULT_ENUMERATE_TRIGGERS, "ENUMERATE_TRIGGERS" };
+    private static final String[] SCANNER_ENUMERATION_RESULTS = {
+        ZebraDataWedge.RESULT_ENUMERATE_SCANNERS,
+        ZebraDataWedge.RESULT_ENUMERATED_SCANNER_LIST
+    };
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Map<String, PendingRequest> pendingRequests = new ConcurrentHashMap<>();
@@ -530,7 +555,13 @@ public class ZebraDataWedgePlugin extends Plugin {
             receiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    handleIntent(intent);
+                    int sentFromUid = Process.INVALID_UID;
+                    String sentFromPackage = null;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        sentFromUid = getSentFromUid();
+                        sentFromPackage = getSentFromPackage();
+                    }
+                    handleIntent(context, intent, sentFromUid, sentFromPackage);
                 }
             };
         }
@@ -615,20 +646,37 @@ public class ZebraDataWedgePlugin extends Plugin {
         receiverRegistered = true;
     }
 
-    private void handleIntent(Intent intent) {
+    void deliverResultIntentForTest(Context context, Intent intent, int sentFromUid, String sentFromPackage) {
+        handleIntent(context, intent, sentFromUid, sentFromPackage);
+    }
+
+    private void handleIntent(Context context, Intent intent, int sentFromUid, String sentFromPackage) {
         String action = intent.getAction();
         if (action == null) {
             return;
         }
         if (ZebraDataWedge.RESULT_ACTION.equals(action)) {
             String commandId = intent.getStringExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER);
-            if (commandId != null) {
-                PendingRequest request = pendingRequests.remove(commandId);
-                if (request != null) {
-                    handler.removeCallbacks(request.timeoutRunnable);
-                    resolvePendingRequest(request, intent);
+            PendingRequest request = commandId == null ? null : pendingRequests.get(commandId);
+            if (request == null && commandId == null) {
+                if (!allowIdentifierFreeQueryCorrelation(context, sentFromUid, sentFromPackage)) {
                     return;
                 }
+                for (Map.Entry<String, PendingRequest> entry : pendingRequests.entrySet()) {
+                    if (entry.getValue().hasQueryPayload(intent)) {
+                        if (request != null) return; // Never guess between concurrent query owners.
+                        commandId = entry.getKey();
+                        request = entry.getValue();
+                    }
+                }
+            }
+            if (request != null) {
+                boolean failure = ZebraDataWedge.RESULT_FAILURE.equalsIgnoreCase(intent.getStringExtra(ZebraDataWedge.EXTRA_RESULT));
+                if (!failure && request.resultExtras.length > 0 && !request.hasQueryPayload(intent)) return;
+                if (!pendingRequests.remove(commandId, request)) return;
+                handler.removeCallbacks(request.timeoutRunnable);
+                resolvePendingRequest(request, intent);
+                return;
             }
         }
 
@@ -643,6 +691,46 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
     }
 
+    /**
+     * Identifier-free typed query replies use payload correlation, not sender authentication.
+     * When the platform exposes sender identity (API 34+), require the DataWedge package.
+     * When identity is unavailable (API 24-33, or API 34+ without shared identity), keep
+     * documented identifier-free compatibility and rely on ambiguity guards below. Residual
+     * spoofing risk for that mode is tracked in https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25
+     */
+    private boolean allowIdentifierFreeQueryCorrelation(Context context, int sentFromUid, String sentFromPackage) {
+        if (isTrustedDataWedgeSender(context, sentFromUid, sentFromPackage)) {
+            return true;
+        }
+        return isSenderIdentityUnavailable(sentFromUid, sentFromPackage);
+    }
+
+    private boolean isSenderIdentityUnavailable(int sentFromUid, String sentFromPackage) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return true;
+        }
+        return (sentFromUid == Process.INVALID_UID || sentFromUid == -1) && sentFromPackage == null;
+    }
+
+    private boolean isTrustedDataWedgeSender(Context context, int sentFromUid, String sentFromPackage) {
+        if (ZebraDataWedge.DATAWEDGE_PACKAGE.equals(sentFromPackage)) {
+            return true;
+        }
+        if (sentFromUid == Process.INVALID_UID || sentFromUid == -1) {
+            return false;
+        }
+        String[] packages = context.getPackageManager().getPackagesForUid(sentFromUid);
+        if (packages == null) {
+            return false;
+        }
+        for (String packageName : packages) {
+            if (ZebraDataWedge.DATAWEDGE_PACKAGE.equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void sendCommand(PluginCall call, Intent intent, String prefix, ResponseParser parser) {
         String commandId = ZebraDataWedge.newCommandIdentifier(prefix);
         intent.putExtra(ZebraDataWedge.EXTRA_SEND_RESULT, ZebraDataWedge.VALUE_LAST_RESULT);
@@ -650,12 +738,32 @@ public class ZebraDataWedgePlugin extends Plugin {
         Runnable timeout = () -> {
             PendingRequest removed = pendingRequests.remove(commandId);
             if (removed != null) {
-                removed.call.reject("Timed out waiting for DataWedge response.");
+                removed.call.reject("Timed out waiting for DataWedge response.", "DATAWEDGE_TIMEOUT");
             }
         };
-        pendingRequests.put(commandId, new PendingRequest(call, parser, timeout));
+        pendingRequests.put(commandId, new PendingRequest(call, parser, timeout, queryResultExtras(intent)));
         handler.postDelayed(timeout, REQUEST_TIMEOUT_MS);
-        sendBroadcast(intent, call);
+        try {
+            getContext().sendBroadcast(intent);
+        } catch (Exception exception) {
+            pendingRequests.remove(commandId);
+            handler.removeCallbacks(timeout);
+            call.reject("Failed to communicate with Zebra DataWedge.", "DATAWEDGE_TRANSPORT", exception);
+        }
+    }
+
+    private String[] queryResultExtras(Intent intent) {
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_ACTIVE_PROFILE)) return ACTIVE_PROFILE_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_CONFIG)) return CONFIG_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_DATAWEDGE_STATUS)) return DATAWEDGE_STATUS_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_PROFILES_LIST)) return PROFILES_LIST_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_SCANNER_STATUS)) return SCANNER_STATUS_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_VERSION_INFO)) return VERSION_INFO_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_DISABLED_APP_LIST)) return DISABLED_APPS_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_GET_IGNORE_DISABLED_PROFILES)) return IGNORE_DISABLED_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_ENUMERATE_TRIGGERS)) return TRIGGER_RESULTS;
+        if (intent.hasExtra(ZebraDataWedge.CMD_ENUMERATE_SCANNERS)) return SCANNER_ENUMERATION_RESULTS;
+        return new String[0];
     }
 
     private void dispatchNotification(Intent intent, PluginCall call) {
@@ -736,7 +844,7 @@ public class ZebraDataWedgePlugin extends Plugin {
     }
 
     private JSObject parseProfilesList(Intent intent) {
-        String[] profiles = firstStringArray(intent, ZebraDataWedge.RESULT_GET_PROFILES_LIST);
+        String[] profiles = firstStringArray(intent, PROFILES_LIST_RESULTS);
         JSObject ret = new JSObject();
         ret.put("profiles", ZebraDataWedge.stringArrayToJSArray(profiles));
         return ret;
@@ -744,19 +852,19 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private JSObject parseActiveProfile(Intent intent) {
         JSObject ret = new JSObject();
-        ret.put("profileName", firstString(intent, ZebraDataWedge.RESULT_GET_ACTIVE_PROFILE, "PROFILE_NAME"));
+        ret.put("profileName", firstString(intent, ACTIVE_PROFILE_RESULTS));
         return ret;
     }
 
     private JSObject parseDataWedgeStatus(Intent intent) {
-        String rawStatus = firstString(intent, ZebraDataWedge.RESULT_GET_DATAWEDGE_STATUS, "DATAWEDGE_STATUS");
+        String rawStatus = firstString(intent, DATAWEDGE_STATUS_RESULTS);
         JSObject ret = new JSObject();
         ret.put("isEnabled", rawStatus != null && ("enabled".equalsIgnoreCase(rawStatus) || Boolean.parseBoolean(rawStatus)));
         return ret;
     }
 
     private JSObject parseIgnoreDisabledProfiles(Intent intent) {
-        String rawValue = firstString(intent, ZebraDataWedge.RESULT_GET_IGNORE_DISABLED_PROFILES, "IGNORE_DISABLED_PROFILES");
+        String rawValue = firstString(intent, IGNORE_DISABLED_RESULTS);
         JSObject ret = new JSObject();
         ret.put("enabled", rawValue != null && ("true".equalsIgnoreCase(rawValue) || "enabled".equalsIgnoreCase(rawValue)));
         return ret;
@@ -764,12 +872,12 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private JSObject parseScannerStatus(Intent intent) {
         JSObject ret = new JSObject();
-        ret.put("status", firstString(intent, ZebraDataWedge.RESULT_GET_SCANNER_STATUS, "SCANNER_STATUS"));
+        ret.put("status", firstString(intent, SCANNER_STATUS_RESULTS));
         return ret;
     }
 
     private JSObject parseTriggers(Intent intent) {
-        String[] triggers = firstStringArray(intent, ZebraDataWedge.RESULT_ENUMERATE_TRIGGERS, "ENUMERATE_TRIGGERS");
+        String[] triggers = firstStringArray(intent, TRIGGER_RESULTS);
         JSObject ret = new JSObject();
         ret.put("triggers", ZebraDataWedge.stringArrayToJSArray(triggers));
         return ret;
@@ -777,12 +885,12 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private JSObject parseDisabledAppList(Intent intent) {
         JSObject ret = new JSObject();
-        ret.put("appList", parseAppListResult(extractBundleList(intent, ZebraDataWedge.RESULT_GET_DISABLED_APP_LIST)));
+        ret.put("appList", parseAppListResult(extractBundleList(intent, DISABLED_APPS_RESULTS)));
         return ret;
     }
 
     private JSObject parseVersionInfo(Intent intent) {
-        Bundle versionInfo = firstBundle(intent, ZebraDataWedge.RESULT_GET_VERSION_INFO, "GET_VERSION_INFO_RESULT");
+        Bundle versionInfo = firstBundle(intent, VERSION_INFO_RESULTS);
         JSObject ret = new JSObject();
         if (versionInfo == null) {
             return ret;
@@ -799,7 +907,7 @@ public class ZebraDataWedgePlugin extends Plugin {
     }
 
     private JSObject parseConfig(Intent intent) {
-        Bundle config = firstBundle(intent, ZebraDataWedge.RESULT_GET_CONFIG, ZebraDataWedge.RESULT_GET_CONFIG_LEGACY);
+        Bundle config = firstBundle(intent, CONFIG_RESULTS);
         JSObject ret = new JSObject();
         if (config == null) {
             return ret;
@@ -1051,11 +1159,41 @@ public class ZebraDataWedgePlugin extends Plugin {
         final PluginCall call;
         final ResponseParser parser;
         final Runnable timeoutRunnable;
+        final String[] resultExtras;
 
-        PendingRequest(PluginCall call, ResponseParser parser, Runnable timeoutRunnable) {
+        PendingRequest(PluginCall call, ResponseParser parser, Runnable timeoutRunnable, String[] resultExtras) {
             this.call = call;
             this.parser = parser;
+            this.resultExtras = resultExtras;
             this.timeoutRunnable = timeoutRunnable;
+        }
+
+        boolean hasQueryPayload(Intent intent) {
+            Bundle extras = intent.getExtras();
+            if (extras == null) return false;
+            for (String key : resultExtras) {
+                Object value = extras.get(key);
+                if (hasExpectedPayloadType(key, value)) return true;
+            }
+            return false;
+        }
+
+        /** Validate the outer wire type; empty containers remain valid query results. */
+        private boolean hasExpectedPayloadType(String key, Object value) {
+            if (Arrays.equals(resultExtras, VERSION_INFO_RESULTS) || Arrays.equals(resultExtras, CONFIG_RESULTS)) {
+                return value instanceof Bundle;
+            }
+            if (
+                Arrays.equals(resultExtras, PROFILES_LIST_RESULTS) ||
+                Arrays.equals(resultExtras, TRIGGER_RESULTS) ||
+                ZebraDataWedge.RESULT_ENUMERATED_SCANNER_LIST.equals(key)
+            ) {
+                return value instanceof String[];
+            }
+            if (Arrays.equals(resultExtras, DISABLED_APPS_RESULTS) || Arrays.equals(resultExtras, SCANNER_ENUMERATION_RESULTS)) {
+                return value instanceof ArrayList<?> || value instanceof android.os.Parcelable[];
+            }
+            return value instanceof String;
         }
     }
 

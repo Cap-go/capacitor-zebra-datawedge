@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadows.ShadowBuild;
 
-/** Intent fixtures exercise the real plugin receiver without scanner hardware. */
+/** Shared plugin fixtures; receive injects trusted metadata rather than exercising onReceive. */
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE, sdk = 34, application = Application.class)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -99,7 +99,8 @@ abstract class DataWedgeTestSupport {
     }
 
     protected void receive(Intent response) {
-        application.sendBroadcast(response);
+        // Real receiver/API compatibility is covered separately by ReceiverCompatibilityTest.
+        plugin.deliverResultIntentForTest(application, response, android.os.Process.myUid(), ZebraDataWedge.DATAWEDGE_PACKAGE);
         shadowOf(Looper.getMainLooper()).idle();
     }
 
