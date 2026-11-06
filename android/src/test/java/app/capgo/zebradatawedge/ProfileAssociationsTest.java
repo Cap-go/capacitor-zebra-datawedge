@@ -21,8 +21,9 @@ public class ProfileAssociationsTest extends DataWedgeTestSupport {
         app.putStringArray("ACTIVITY_LIST", new String[] { "*" });
         Bundle config = new Bundle();
         config.putString("PROFILE_NAME", profile);
-        config.putParcelableArray("APP_LIST", new android.os.Parcelable[] { app });
+        config.putParcelableArray("APP_LIST", new android.os.Parcelable[] { new Intent(), app });
         receiveCorrelated(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_CONFIG, config));
+        assertEquals(1, call.result.optJSONArray("appList").length());
         assertEquals("customer.otherApp", call.result.optJSONArray("appList").optJSONObject(0).optString("packageName"));
     }
 
@@ -43,7 +44,9 @@ public class ProfileAssociationsTest extends DataWedgeTestSupport {
         assertEquals("*", call.result.optJSONArray("appList").optJSONObject(0).optJSONArray("activityList").optString(0));
         Call associated = new Call(new JSObject().put("profileName", profile));
         plugin.getAssociatedApps(associated);
-        assertTrue(lastBroadcast().getBundleExtra(ZebraDataWedge.CMD_GET_CONFIG).containsKey("APP_LIST"));
+        Bundle associatedRequest = lastBroadcast().getBundleExtra(ZebraDataWedge.CMD_GET_CONFIG);
+        assertTrue(associatedRequest.containsKey("APP_LIST"));
+        assertEquals("", associatedRequest.getString("APP_LIST"));
         receiveCorrelated(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_CONFIG, config));
         assertEquals(1, associated.completions);
         assertNull(associated.error);
@@ -61,8 +64,11 @@ public class ProfileAssociationsTest extends DataWedgeTestSupport {
                     else plugin.getConfig(call);
                     Bundle app = new Bundle();
                     app.putString("PACKAGE_NAME", application.getPackageName());
-                    if (activityArray) app.putStringArray("ACTIVITY_LIST", new String[] { "*" });
-                    else app.putStringArrayList("ACTIVITY_LIST", new java.util.ArrayList<>(java.util.Arrays.asList("*")));
+                    if (activityArray) app.putStringArray("ACTIVITY_LIST", new String[] { "*", "customer.ScanActivity" });
+                    else app.putStringArrayList(
+                        "ACTIVITY_LIST",
+                        new java.util.ArrayList<>(java.util.Arrays.asList("*", "customer.ScanActivity"))
+                    );
                     Bundle config = new Bundle();
                     config.putString("PROFILE_NAME", profile);
                     if (parcelledArray) config.putParcelableArray("APP_LIST", new android.os.Parcelable[] { app });
@@ -75,7 +81,12 @@ public class ProfileAssociationsTest extends DataWedgeTestSupport {
                         application.getPackageName(),
                         call.result.optJSONArray("appList").optJSONObject(0).optString("packageName")
                     );
+                    assertEquals(2, call.result.optJSONArray("appList").optJSONObject(0).optJSONArray("activityList").length());
                     assertEquals("*", call.result.optJSONArray("appList").optJSONObject(0).optJSONArray("activityList").optString(0));
+                    assertEquals(
+                        "customer.ScanActivity",
+                        call.result.optJSONArray("appList").optJSONObject(0).optJSONArray("activityList").optString(1)
+                    );
                 }
             }
         }
