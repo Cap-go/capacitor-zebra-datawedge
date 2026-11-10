@@ -176,6 +176,9 @@ export interface SetConfigOptions {
    */
   completeResult?: boolean;
   appList?: DataWedgeAppConfig[];
+  /** DataWedge defaults to OVERWRITE when omitted, which resets an existing profile, including associations.
+   * Use UPDATE for incremental changes to an existing profile, especially during a scan session.
+   */
   configMode?: DataWedgeConfigMode;
   pluginConfigs?: DataWedgePluginConfig[];
   profileEnabled?: boolean;
