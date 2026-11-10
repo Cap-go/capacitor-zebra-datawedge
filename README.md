@@ -165,12 +165,6 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 
 ## API
 
-### Android command delivery
-
-On Android 14 and newer, outgoing DataWedge API intents use ordered broadcasts to avoid the ordinary-delivery delay documented by Zebra. Android 13 and earlier retain ordinary broadcasts. This applies consistently to queries, configuration, notification registration/removal and software triggers. Android delivery completion does not confirm DataWedge success: acknowledged commands still wait for the correlated DataWedge response, and notification registration still confirms dispatch only. Receiver authentication policy is unchanged.
-
-See [Zebra's Intent API guidance](https://techdocs.zebra.com/datawedge/15-0/guide/api/). This native transport change requires rebuilding the Android app.
-
 <docgen-index>
 
 - [`cloneProfile(...)`](#cloneprofile)
