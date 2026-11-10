@@ -266,7 +266,7 @@ export interface DataWedgeDiagnosticsSnapshot {
   dataWedgePackage: { status: 'installed' | 'notFound' | 'unavailable'; version?: string };
   commands: {
     commandIdentifier: string;
-    outcome: 'SENT' | 'SUCCESS' | 'FAILURE' | 'TIMEOUT' | 'TRANSPORT_ERROR' | 'CANCELLED';
+    outcome: 'SENT' | 'SUCCESS' | 'FAILURE' | 'TIMEOUT' | 'TRANSPORT_ERROR' | 'CANCELLED' | 'INVALID_RESPONSE';
     elapsedMs: number;
   }[];
 }
