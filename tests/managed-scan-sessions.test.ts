@@ -284,4 +284,43 @@ describe('built-in session heartbeat', () => {
     await flush();
     expect(timers.size).toBe(0);
   });
+  it('shares automatic lifecycle cleanup with an explicit end until its acknowledgement', async () => {
+    let acknowledge!: (value: { confirmed: boolean }) => void;
+    end.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          acknowledge = resolve;
+        }),
+    );
+    await plugin.beginScanSession({ profileName: 'Picking' });
+    windowEvents.dispatchEvent(new Event('pagehide'));
+    const explicit = plugin.endScanSession({ sessionId: 'one' });
+    await flush();
+    expect(end).toHaveBeenCalledTimes(1);
+    acknowledge({ confirmed: true });
+    expect(await explicit).toEqual({ confirmed: true });
+  });
+
+  it('exposes a late cancelled token when cleanup fails so end remains retryable', async () => {
+    let reply!: (value: ScanSession) => void;
+    begin.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          reply = resolve;
+        }),
+    );
+    end.mockRejectedValueOnce(new Error('disable unconfirmed'));
+    const pending = plugin.beginScanSession({ profileName: 'Picking' });
+    await flush();
+    windowEvents.dispatchEvent(new Event('pagehide'));
+    reply(session);
+    await expect(pending).rejects.toMatchObject({
+      code: 'SESSION_CANCELLED',
+      sessionId: 'one',
+      cleanupConfirmed: false,
+    });
+    expect(await plugin.endScanSession({ sessionId: 'one' })).toEqual({ confirmed: true });
+    expect(end).toHaveBeenCalledTimes(2);
+    expect(timers.size).toBe(0);
+  });
 });

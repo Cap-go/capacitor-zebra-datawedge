@@ -17,6 +17,20 @@ interface ManagedSession {
 /** Internal wrapper: ordinary consumers should only need begin/end, not a heartbeat loop. */
 export function withManagedScanSessions(native: ZebraDataWedgePlugin): ZebraDataWedgePlugin {
   let current: ManagedSession | undefined;
+  const pendingEnds = new Map<string, Promise<{ confirmed: boolean }>>();
+
+  function finishNativeSession(sessionId: string): Promise<{ confirmed: boolean }> {
+    const existing = pendingEnds.get(sessionId);
+    if (existing) return existing;
+    const request = Promise.resolve().then(() => native.endScanSession({ sessionId }));
+    pendingEnds.set(sessionId, request);
+    const settled = () => {
+      if (pendingEnds.get(sessionId) === request) pendingEnds.delete(sessionId);
+    };
+    // Attach both handlers without creating an ignored rejecting finally-promise.
+    void request.then(settled, settled);
+    return request;
+  }
 
   const stop = (owner: ManagedSession) => {
     owner.stopped = true;
@@ -31,7 +45,7 @@ export function withManagedScanSessions(native: ZebraDataWedgePlugin): ZebraData
   const abandon = (owner: ManagedSession) => {
     stop(owner);
     // Best effort only: the caller must explicitly await end before camera/new-session handoff.
-    if (owner.session) void native.endScanSession({ sessionId: owner.session.sessionId }).catch(() => undefined);
+    if (owner.session) void finishNativeSession(owner.session.sessionId).catch(() => undefined);
   };
 
   const scheduleHeartbeat = (owner: ManagedSession) => {
@@ -85,8 +99,18 @@ export function withManagedScanSessions(native: ZebraDataWedgePlugin): ZebraData
       const session = await native.beginScanSession(options);
       owner.session = session;
       if (owner.stopped || owner.closedId === session.sessionId) {
-        abandon(owner);
-        throw Object.assign(new Error('Session closed during creation.'), { code: 'SESSION_CANCELLED' });
+        stop(owner);
+        let cleanupConfirmed = false;
+        try {
+          cleanupConfirmed = (await finishNativeSession(session.sessionId)).confirmed === true;
+        } catch {
+          /* The caller can retry end with the exposed token. */
+        }
+        throw Object.assign(new Error('Session closed during creation.'), {
+          code: 'SESSION_CANCELLED',
+          sessionId: session.sessionId,
+          cleanupConfirmed,
+        });
       }
       // Bound JS resources even if native notifications or a renewal reply never arrive.
       owner.absoluteTimer = setTimeout(() => abandon(owner), session.timeoutMs);
@@ -100,7 +124,7 @@ export function withManagedScanSessions(native: ZebraDataWedgePlugin): ZebraData
 
   const end = (options: { sessionId: string }) => {
     if (current?.session?.sessionId === options.sessionId) stop(current);
-    return native.endScanSession(options);
+    return finishNativeSession(options.sessionId);
   };
 
   // Capacitor's registered plugin is itself a lazy proxy. Preserve every other method unchanged.

@@ -283,6 +283,7 @@ export interface ZebraDataWedgePlugin extends Plugin {
    * Validate an existing app-owned profile and acquire an opt-in exclusive native session.
    * Automatically renews the native liveness lease from JS until end, native closure, page hiding,
    * renewal failure or the absolute timeout. Application completion/cancellation must still call end.
+   * If cancelled after allocation, rejection includes sessionId and cleanupConfirmed for cleanup retry.
    * Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
    * The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
    * Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
