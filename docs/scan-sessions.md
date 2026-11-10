@@ -61,3 +61,9 @@ Begin returns `appList`, a snapshot of the associations checked by its ownership
 The native operation constructs reply metadata and registers the action before granting ownership. Timeout, transport, parsing or lifecycle failure before ownership releases the reservation and leaves no session token to clean up. Background begin rejects `SESSION_INACTIVE`, another active/reserved session rejects `SESSION_BUSY`, and a profile without this app's association rejects `SESSION_UNASSOCIATED`. A foreign association remains `SESSION_OWNERSHIP`.
 
 JavaScript cancellation can race a successful native allocation. That rejection still includes `sessionId` and `cleanupConfirmed`; explicitly retry end if cleanup is unconfirmed. Application code should distinguish cancellation from scanner unavailability instead of automatically opening a camera after page hiding. New integrations use these public APIs directly; no legacy compatibility adapter is required.
+
+## Updating an enrolled profile
+
+Use explicit `configMode: DataWedgeConfigMode.UPDATE` for incremental `setConfig` calls. DataWedge defaults to OVERWRITE when the mode is omitted, which can reset the profile's app associations. The session token coordinates pending work and cleanup; it does not make arbitrary device configuration transactional or restore overwritten associations. Plugin resets can still be requested within UPDATE using each plugin's resetConfig option.
+
+A profile remains enrolled for the process after end, so unowned low-level writes stay blocked. Avoid resetting its ownership with OVERWRITE. If associations were removed, begin rejects rather than treating it as still owned; a fresh process and explicit profile setup may be needed before beginning again. See [DataWedge SET_CONFIG](https://techdocs.zebra.com/datawedge/15-0/guide/api/setconfig/).
