@@ -26,3 +26,5 @@ The trace contains generated command identifiers, sanitized outcomes and elapsed
 The environment snapshot reports manufacturer, model, Android version and DataWedge package lookup status/version. `notFound` means Android could not find the package; `unavailable` means the lookup failed for another reason. These are not service-enable or Intune-policy checks. Exact package visibility is declared for DataWedge; Zebra Device Manager is not queried or required.
 
 `getDiagnostics` and `configureDiagnostics` reject as unavailable on iOS/web. No user interface, file export, manufacturer gate or emulator override is installed by this feature.
+
+Successful delivery of a reply is not sufficient to record command success. The response parser and any configuration-result validation must finish first. Rejected DataWedge/validation results record `FAILURE`; unexpected parsing/registration errors record `INVALID_RESPONSE`, without copying exception messages into the trace.

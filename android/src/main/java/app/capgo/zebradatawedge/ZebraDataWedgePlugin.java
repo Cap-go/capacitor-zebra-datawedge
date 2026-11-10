@@ -697,9 +697,8 @@ public class ZebraDataWedgePlugin extends Plugin {
                 boolean failure = ZebraDataWedge.RESULT_FAILURE.equalsIgnoreCase(intent.getStringExtra(ZebraDataWedge.EXTRA_RESULT));
                 if (!failure && request.resultExtras.length > 0 && !request.hasQueryPayload(intent)) return;
                 if (!pendingRequests.remove(commandId, request)) return;
-                diagnostics.record(commandId, failure ? "FAILURE" : "SUCCESS");
                 handler.removeCallbacks(request.timeoutRunnable);
-                resolvePendingRequest(request, intent);
+                resolvePendingRequest(request, intent, commandId);
                 return;
             }
         }
@@ -811,13 +810,17 @@ public class ZebraDataWedgePlugin extends Plugin {
         }
     }
 
-    private void resolvePendingRequest(PendingRequest request, Intent intent) {
+    private void resolvePendingRequest(PendingRequest request, Intent intent, String commandId) {
         try {
             rejectIfFailure(intent);
-            request.call.resolve(request.parser.parse(intent));
+            JSObject result = request.parser.parse(intent);
+            diagnostics.record(commandId, "SUCCESS");
+            request.call.resolve(result);
         } catch (ZebraDataWedgeException exception) {
+            diagnostics.record(commandId, "FAILURE");
             request.call.reject(exception.getMessage(), exception.getCode());
         } catch (Exception exception) {
+            diagnostics.record(commandId, "INVALID_RESPONSE");
             request.call.reject(exception.getMessage(), exception);
         }
     }

@@ -95,6 +95,11 @@ public class NativeDiagnosticsTest extends DataWedgeTestSupport {
             public void sendBroadcast(Intent intent) {
                 throw new IllegalStateException("secret-payload");
             }
+
+            @Override
+            public void sendOrderedBroadcast(Intent intent, String permission) {
+                throw new IllegalStateException("secret-payload");
+            }
         };
         plugin.getActiveProfile(new Call(new JSObject()));
         String trace = snapshot().toString();
@@ -110,5 +115,57 @@ public class NativeDiagnosticsTest extends DataWedgeTestSupport {
             assertEquals("PARAMETER_INVALID", call.error);
         }
         assertFalse(snapshot().getBoolean("enabled", true));
+    }
+
+    @Test
+    public void failedCommandHasOneSanitizedTerminalOutcome() {
+        enable(10);
+        Call call = new Call(new JSObject().put("profileName", "secret-profile"));
+        plugin.createProfile(call);
+        android.os.Bundle info = new android.os.Bundle();
+        info.putString("RESULT_CODE", "OPERATION_NOT_ALLOWED");
+        receive(resultFor(lastBroadcast()).putExtra("RESULT", "FAILURE").putExtra("RESULT_INFO", info));
+        assertEquals("OPERATION_NOT_ALLOWED", call.error);
+        assertEquals(1, call.completions);
+        assertEquals(2, snapshot().optJSONArray("commands").length());
+        assertEquals("FAILURE", snapshot().optJSONArray("commands").optJSONObject(1).optString("outcome"));
+        assertFalse(snapshot().toString().contains("secret-profile"));
+    }
+
+    @Test
+    public void parserFailureIsNotRecordedAsSuccess() {
+        enable(10);
+        transportContext = new android.content.ContextWrapper(application) {
+            @Override
+            public Intent registerReceiver(android.content.BroadcastReceiver receiver, android.content.IntentFilter filter, int flags) {
+                throw new IllegalStateException("secret-registration-error");
+            }
+
+            @Override
+            public Intent registerReceiver(
+                android.content.BroadcastReceiver receiver,
+                android.content.IntentFilter filter,
+                String permission,
+                android.os.Handler scheduler,
+                int flags
+            ) {
+                throw new IllegalStateException("secret-registration-error");
+            }
+        };
+        org.json.JSONArray plugins = new org.json.JSONArray();
+        plugins.put(
+            new JSObject()
+                .put("pluginName", "INTENT")
+                .put("paramList", new JSObject().put("intent_output_enabled", "true").put("intent_action", "secret.scan.action"))
+        );
+        Call call = new Call(new JSObject().put("profileName", profile).put("pluginConfigs", plugins));
+        plugin.setConfig(call);
+        receive(resultFor(lastBroadcast()));
+        assertEquals(1, call.completions);
+        assertNotNull(call.error);
+        String trace = snapshot().toString();
+        assertTrue(trace.contains("INVALID_RESPONSE"));
+        assertFalse(trace.contains("SUCCESS"));
+        assertFalse(trace.contains("secret"));
     }
 }
