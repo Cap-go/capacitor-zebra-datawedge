@@ -225,12 +225,12 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 ### getScanSessionCapabilities()
 
 ```typescript
-getScanSessionCapabilities() => Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean; }>
+getScanSessionCapabilities() => Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean; sessionAssociationDetails: boolean; }>
 ```
 
 Read-only native session API negotiation. Does not send a DataWedge command.
 
-**Returns:** <code>Promise&lt;{ version: number; customProfileNames: boolean; renewableLease: boolean; }&gt;</code>
+**Returns:** <code>Promise&lt;{ version: number; customProfileNames: boolean; renewableLease: boolean; sessionAssociationDetails: boolean; }&gt;</code>
 
 ---
 
@@ -243,7 +243,10 @@ beginScanSession(options: BeginScanSessionOptions) => Promise<ScanSession>
 Validate an existing app-owned profile and acquire an opt-in exclusive native session.
 Automatically renews the native liveness lease from JS until end, native closure, page hiding,
 renewal failure or the absolute timeout. Application completion/cancellation must still call end.
-If cancelled after allocation, rejection includes sessionId and cleanupConfirmed for cleanup retry.
+Returns the validated appList snapshot; it is not a cache or permission for later profile mutations.
+Native begin failures leave no allocated session. Background begin rejects SESSION_INACTIVE;
+another reserved session rejects SESSION_BUSY; an unassociated profile rejects SESSION_UNASSOCIATED.
+If JS cancellation races successful allocation, rejection includes sessionId and cleanupConfirmed for cleanup retry.
 Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
 The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
 Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
@@ -893,13 +896,21 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 #### ScanSession
 
-| Prop                 | Type                | Description                                                             |
-| -------------------- | ------------------- | ----------------------------------------------------------------------- |
-| **`sessionId`**      | <code>string</code> |                                                                         |
-| **`profileName`**    | <code>string</code> |                                                                         |
-| **`intentAction`**   | <code>string</code> | Configure this action in the profile's INTENT output before triggering. |
-| **`timeoutMs`**      | <code>number</code> |                                                                         |
-| **`leaseTimeoutMs`** | <code>number</code> |                                                                         |
+| Prop                 | Type                              | Description                                                                          |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------ |
+| **`appList`**        | <code>DataWedgeAppConfig[]</code> | Snapshot of the associations validated by begin; avoids a redundant getConfig query. |
+| **`sessionId`**      | <code>string</code>               |                                                                                      |
+| **`profileName`**    | <code>string</code>               |                                                                                      |
+| **`intentAction`**   | <code>string</code>               | Configure this action in the profile's INTENT output before triggering.              |
+| **`timeoutMs`**      | <code>number</code>               |                                                                                      |
+| **`leaseTimeoutMs`** | <code>number</code>               |                                                                                      |
+
+#### DataWedgeAppConfig
+
+| Prop               | Type                  |
+| ------------------ | --------------------- |
+| **`activityList`** | <code>string[]</code> |
+| **`packageName`**  | <code>string</code>   |
 
 #### BeginScanSessionOptions
 
@@ -963,13 +974,6 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`profileEnabled`**   | <code>boolean</code>                                                |                                                                                                                                                                                                                                                                                                               |
 | **`profileName`**      | <code>string</code>                                                 |                                                                                                                                                                                                                                                                                                               |
 | **`scanIntentAction`** | <code>string</code>                                                 | Registers this intent action in the plugin receiver after a successful `setConfig` (runtime only; call again on every app start). `INTENT` entries in `pluginConfigs` also register their `intent_action` values automatically after a successful `setConfig`, whether or not `scanIntentAction` is supplied. |
-
-#### DataWedgeAppConfig
-
-| Prop               | Type                  |
-| ------------------ | --------------------- |
-| **`activityList`** | <code>string[]</code> |
-| **`packageName`**  | <code>string</code>   |
 
 #### DataWedgePluginConfig
 

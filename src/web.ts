@@ -31,7 +31,12 @@ const unavailable = (...args: unknown[]) => {
 };
 
 export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin {
-  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean }> {
+  getScanSessionCapabilities(): Promise<{
+    version: number;
+    customProfileNames: boolean;
+    renewableLease: boolean;
+    sessionAssociationDetails: boolean;
+  }> {
     return unavailable();
   }
   beginScanSession(options: BeginScanSessionOptions): Promise<ScanSession> {

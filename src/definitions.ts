@@ -259,6 +259,8 @@ export interface BeginScanSessionOptions {
 }
 
 export interface ScanSession {
+  /** Snapshot of the associations validated by begin; avoids a redundant getConfig query. */
+  appList: DataWedgeAppConfig[];
   sessionId: string;
   profileName: string;
   /** Configure this action in the profile's INTENT output before triggering. */
@@ -278,12 +280,20 @@ export interface ScanSessionState {
 
 export interface ZebraDataWedgePlugin extends Plugin {
   /** Read-only native session API negotiation. Does not send a DataWedge command. */
-  getScanSessionCapabilities(): Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean }>;
+  getScanSessionCapabilities(): Promise<{
+    version: number;
+    customProfileNames: boolean;
+    renewableLease: boolean;
+    sessionAssociationDetails: boolean;
+  }>;
   /**
    * Validate an existing app-owned profile and acquire an opt-in exclusive native session.
    * Automatically renews the native liveness lease from JS until end, native closure, page hiding,
    * renewal failure or the absolute timeout. Application completion/cancellation must still call end.
-   * If cancelled after allocation, rejection includes sessionId and cleanupConfirmed for cleanup retry.
+   * Returns the validated appList snapshot; it is not a cache or permission for later profile mutations.
+   * Native begin failures leave no allocated session. Background begin rejects SESSION_INACTIVE;
+   * another reserved session rejects SESSION_BUSY; an unassociated profile rejects SESSION_UNASSOCIATED.
+   * If JS cancellation races successful allocation, rejection includes sessionId and cleanupConfirmed for cleanup retry.
    * Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
    * The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
    * Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during

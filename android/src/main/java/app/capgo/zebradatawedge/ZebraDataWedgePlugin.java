@@ -98,7 +98,13 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     @PluginMethod
     public void getScanSessionCapabilities(PluginCall call) {
-        call.resolve(new JSObject().put("version", 2).put("customProfileNames", true).put("renewableLease", true));
+        call.resolve(
+            new JSObject()
+                .put("version", 2)
+                .put("customProfileNames", true)
+                .put("renewableLease", true)
+                .put("sessionAssociationDetails", true)
+        );
     }
 
     @PluginMethod
@@ -115,7 +121,11 @@ public class ZebraDataWedgePlugin extends Plugin {
             call.reject("leaseTimeoutMs must be between 2000 and 60000.", "PARAMETER_INVALID");
             return;
         }
-        if (!foreground || scanSession != null) {
+        if (!foreground) {
+            call.reject("Cannot begin a scanner session while backgrounded.", "SESSION_INACTIVE");
+            return;
+        }
+        if (scanSession != null) {
             call.reject("Scanner session is unavailable or busy.", "SESSION_BUSY");
             return;
         }
@@ -147,22 +157,29 @@ public class ZebraDataWedgePlugin extends Plugin {
                         }
                     }
                     if (!own) {
-                        throw new ZebraDataWedgeException("SESSION_OWNERSHIP", "Profile must already be associated with this application.");
+                        throw new ZebraDataWedgeException(
+                            "SESSION_UNASSOCIATED",
+                            "Profile must already be associated with this application."
+                        );
                     }
-                    session.owned = true;
-                    sessionProfiles.add(profile);
+                    // Construct/validate reply metadata before ownership is granted.
+                    // A failed discovery must not leave an inaccessible owned token.
+                    JSObject result = new JSObject()
+                        .put("sessionId", session.id)
+                        .put("profileName", session.profile)
+                        .put("appList", parseAppListResult(apps))
+                        .put("intentAction", session.action)
+                        .put("timeoutMs", session.timeoutMs)
+                        .put("leaseTimeoutMs", session.leaseTimeoutMs);
                     registerManualIntentAction(session.action);
                     long now = SystemClock.elapsedRealtime();
                     session.absoluteDeadline = now + session.timeoutMs;
                     session.leaseDeadline = now + session.leaseTimeoutMs;
                     session.deadline = () -> checkSessionDeadline(session);
                     scheduleSessionDeadline(session);
-                    return new JSObject()
-                        .put("sessionId", session.id)
-                        .put("profileName", session.profile)
-                        .put("intentAction", session.action)
-                        .put("timeoutMs", session.timeoutMs)
-                        .put("leaseTimeoutMs", session.leaseTimeoutMs);
+                    sessionProfiles.add(profile);
+                    session.owned = true;
+                    return result;
                 }
             },
             () -> discardUnstartedSession(session),
@@ -171,7 +188,16 @@ public class ZebraDataWedgePlugin extends Plugin {
     }
 
     private synchronized void discardUnstartedSession(ScanSession session) {
-        if (scanSession == session && !session.owned) scanSession = null;
+        if (scanSession == session && !session.owned) {
+            scanSession = null;
+            if (session.deadline != null) handler.removeCallbacks(session.deadline);
+            manualIntentActions.remove(session.action);
+            try {
+                syncRegisteredIntentActions();
+            } catch (Exception ignored) {
+                /* No input has been enabled. */
+            }
+        }
     }
 
     private ScanSession requireScanSession(PluginCall call, boolean allowClosing) {
@@ -1501,7 +1527,14 @@ public class ZebraDataWedgePlugin extends Plugin {
         final Runnable onFailure;
         final String sessionId;
 
-        PendingRequest(PluginCall call, ResponseParser parser, Runnable timeoutRunnable, String[] resultExtras, Runnable onFailure, String sessionId) {
+        PendingRequest(
+            PluginCall call,
+            ResponseParser parser,
+            Runnable timeoutRunnable,
+            String[] resultExtras,
+            Runnable onFailure,
+            String sessionId
+        ) {
             this.call = call;
             this.parser = parser;
             this.resultExtras = resultExtras;

@@ -54,6 +54,7 @@ public class ScanSessionTest extends DataWedgeTestSupport {
         plugin.getScanSessionCapabilities(call);
         assertEquals(2, call.result.optInt("version"));
         assertTrue(call.result.optBoolean("renewableLease"));
+        assertTrue(call.result.optBoolean("sessionAssociationDetails"));
         assertEquals(count, broadcasts().size());
     }
 
@@ -412,5 +413,73 @@ public class ScanSessionTest extends DataWedgeTestSupport {
         assertEquals(count, broadcasts().size());
         receive(resultFor(lastBroadcast()));
         assertNull(config.error);
+    }
+
+    @Test
+    public void beginReturnsValidatedAssociationsWithoutAnotherQuery() {
+        int before = broadcasts().size();
+        Call begun = begin(1000);
+        assertEquals(1, broadcasts().size() - before);
+        assertEquals(application.getPackageName(), begun.result.optJSONArray("appList").optJSONObject(0).optString("packageName"));
+        assertEquals("*", begun.result.optJSONArray("appList").optJSONObject(0).optJSONArray("activityList").optString(0));
+    }
+
+    @Test
+    public void unassociatedBeginCanRetryAfterProfileRepair() {
+        Call call = new Call(new JSObject().put("profileName", profile));
+        plugin.beginScanSession(call);
+        Bundle config = new Bundle();
+        config.putString("PROFILE_NAME", profile);
+        config.putParcelableArrayList("APP_LIST", new ArrayList<Bundle>());
+        receiveCorrelated(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_CONFIG, config));
+        assertEquals("SESSION_UNASSOCIATED", call.error);
+        assertNull(call.result);
+        begin(1000);
+    }
+
+    @Test
+    public void pendingDiscoveryPauseReleasesUnallocatedReservation() {
+        Call call = new Call(new JSObject().put("profileName", profile));
+        plugin.beginScanSession(call);
+        Intent discovery = lastBroadcast();
+        plugin.pause();
+        assertEquals("SESSION_CANCELLED", call.error);
+        plugin.resume();
+        // A late discovery reply cannot resurrect the cancelled reservation.
+        receive(association(application.getPackageName()).putExtra("COMMAND_IDENTIFIER", discovery.getStringExtra("COMMAND_IDENTIFIER")));
+        assertEquals(1, call.completions);
+        begin(1000);
+    }
+
+    @Test
+    public void discoveryTimeoutReleasesReservation() {
+        Call call = new Call(new JSObject().put("profileName", profile));
+        plugin.beginScanSession(call);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(9));
+        assertEquals("DATAWEDGE_TIMEOUT", call.error);
+        begin(1000);
+    }
+
+    @Test
+    public void backgroundBeginIsInactiveInsteadOfBusy() {
+        plugin.pause();
+        Call call = new Call(new JSObject().put("profileName", profile));
+        int before = broadcasts().size();
+        plugin.beginScanSession(call);
+        assertEquals("SESSION_INACTIVE", call.error);
+        assertEquals(before, broadcasts().size());
+        plugin.resume();
+        begin(1000);
+    }
+
+    @Test
+    public void rejectedMetadataDoesNotLeaveAnOwnedToken() {
+        Call call = new Call(new JSObject().put("profileName", profile));
+        plugin.beginScanSession(call);
+        Intent reply = association(application.getPackageName());
+        reply.getBundleExtra(ZebraDataWedge.RESULT_GET_CONFIG).putString("PROFILE_NAME", "another.profile");
+        receiveCorrelated(reply);
+        assertEquals("SESSION_UNASSOCIATED", call.error);
+        begin(1000);
     }
 }

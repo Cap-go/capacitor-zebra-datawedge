@@ -53,3 +53,11 @@ Listen for `scanSessionClosed` to distinguish `heartbeat_expired`, `max_duration
 For advanced environments only, `autoRenew: false` disables the built-in heartbeat and makes the caller responsible for `renewScanSession({ sessionId })`. Page/native-closure handling and the absolute JS resource timer remain active. Ordinary integrations should retain automatic renewal. Neither form of renewal can revive an expired lease or bypass unconfirmed cleanup.
 
 Automatic lifecycle cleanup and explicit end share the same in-flight cleanup request. If begin is cancelled after native allocation, its rejection exposes `sessionId` and `cleanupConfirmed`; retry `endScanSession` with that token if confirmation failed. No late token is returned as an active session.
+
+## Ownership discovery and safe begin failures
+
+Begin returns `appList`, a snapshot of the associations checked by its ownership query. Callers can use it to avoid an immediate duplicate `getConfig`; they must still configure output/decoders and verify active-profile/scanner readiness. It does not grant cached permission to mutate another profile. Capability `sessionAssociationDetails` identifies native binaries returning this data.
+
+The native operation constructs reply metadata and registers the action before granting ownership. Timeout, transport, parsing or lifecycle failure before ownership releases the reservation and leaves no session token to clean up. Background begin rejects `SESSION_INACTIVE`, another active/reserved session rejects `SESSION_BUSY`, and a profile without this app's association rejects `SESSION_UNASSOCIATED`. A foreign association remains `SESSION_OWNERSHIP`.
+
+JavaScript cancellation can race a successful native allocation. That rejection still includes `sessionId` and `cleanupConfirmed`; explicitly retry end if cleanup is unconfirmed. Application code should distinguish cancellation from scanner unavailability instead of automatically opening a camera after page hiding. New integrations use these public APIs directly; no legacy compatibility adapter is required.
