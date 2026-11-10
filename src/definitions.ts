@@ -170,6 +170,11 @@ export interface ReportingOptions {
 }
 
 export interface SetConfigOptions {
+  /** Opt in to COMPLETE_RESULT validation of every requested plugin. Default false (LAST_RESULT).
+   * Requires a native binary with getConfigurationCapabilities().completeConfigResults.
+   * Rejection does not roll back DataWedge changes; configure input disabled before activation.
+   */
+  completeResult?: boolean;
   appList?: DataWedgeAppConfig[];
   configMode?: DataWedgeConfigMode;
   pluginConfigs?: DataWedgePluginConfig[];
@@ -252,6 +257,12 @@ export interface ZebraDataWedgePlugin extends Plugin {
   importConfig(options: ImportConfigOptions): Promise<void>;
   renameProfile(options: RenameProfileOptions): Promise<void>;
   restoreConfig(): Promise<void>;
+  /** Read-only native configuration feature negotiation; sends no DataWedge command. */
+  getConfigurationCapabilities(): Promise<{ completeConfigResults: boolean }>;
+  /** Apply profile/plugin configuration. With completeResult true, require successful rows for every
+   * requested plugin before updating local intent-action registration. DataWedge changes are not rolled
+   * back on rejection; use input-disabled configuration followed by separately acknowledged activation.
+   */
   setConfig(options: SetConfigOptions): Promise<void>;
   setDisabledAppList(options: SetDisabledAppListOptions): Promise<void>;
   setIgnoreDisabledProfiles(options: IgnoreDisabledProfilesResult): Promise<void>;

@@ -163,6 +163,10 @@ On Android 14/API 34 and later, identifier-free replies that share platform send
 
 Query correlation and payload validation do not guarantee sender authenticity. Any installed app can inject a matching identifier-free query result on every Android version, including by withholding its identity on API 34 and later. Replies with matching command identifiers, scan data and notification broadcasts also lack complete sender authentication. See the [known sender-authentication limitations](https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25) for details.
 
+## Validating multi-plugin configuration
+
+Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge success for every requested plugin rather than only its last result. Check native support with the read-only `getConfigurationCapabilities()` API when serving JS to older binaries. Existing calls retain their LAST_RESULT default. Validation does not roll back device configuration or establish scanner readiness; configure input disabled before a separate activation. See [complete configuration results](docs/complete-configuration-results.md).
+
 ## API
 
 <docgen-index>
@@ -173,6 +177,7 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 - [`importConfig(...)`](#importconfig)
 - [`renameProfile(...)`](#renameprofile)
 - [`restoreConfig()`](#restoreconfig)
+- [`getConfigurationCapabilities()`](#getconfigurationcapabilities)
 - [`setConfig(...)`](#setconfig)
 - [`setDisabledAppList(...)`](#setdisabledapplist)
 - [`setIgnoreDisabledProfiles(...)`](#setignoredisabledprofiles)
@@ -283,11 +288,27 @@ restoreConfig() => Promise<void>
 
 ---
 
+### getConfigurationCapabilities()
+
+```typescript
+getConfigurationCapabilities() => Promise<{ completeConfigResults: boolean; }>
+```
+
+Read-only native configuration feature negotiation; sends no DataWedge command.
+
+**Returns:** <code>Promise&lt;{ completeConfigResults: boolean; }&gt;</code>
+
+---
+
 ### setConfig(...)
 
 ```typescript
 setConfig(options: SetConfigOptions) => Promise<void>
 ```
+
+Apply profile/plugin configuration. With completeResult true, require successful rows for every
+requested plugin before updating local intent-action registration. DataWedge changes are not rolled
+back on rejection; use input-disabled configuration followed by separately acknowledged activation.
 
 | Param         | Type                                                          |
 | ------------- | ------------------------------------------------------------- |
@@ -803,6 +824,7 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 | Prop                   | Type                                                                | Description                                                                                                                                                                                                                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`completeResult`**   | <code>boolean</code>                                                | Opt in to COMPLETE_RESULT validation of every requested plugin. Default false (LAST_RESULT). Requires a native binary with getConfigurationCapabilities().completeConfigResults. Rejection does not roll back DataWedge changes; configure input disabled before activation.                                  |
 | **`appList`**          | <code>DataWedgeAppConfig[]</code>                                   |                                                                                                                                                                                                                                                                                                               |
 | **`configMode`**       | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> |                                                                                                                                                                                                                                                                                                               |
 | **`pluginConfigs`**    | <code>DataWedgePluginConfig[]</code>                                |                                                                                                                                                                                                                                                                                                               |

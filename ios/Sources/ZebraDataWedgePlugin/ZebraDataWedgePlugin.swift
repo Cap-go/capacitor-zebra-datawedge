@@ -12,6 +12,7 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "importConfig", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "renameProfile", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "restoreConfig", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getConfigurationCapabilities", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setConfig", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setDisabledAppList", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setIgnoreDisabledProfiles", returnType: CAPPluginReturnPromise),
@@ -57,6 +58,7 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
     @objc public func importConfig(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func renameProfile(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func restoreConfig(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func getConfigurationCapabilities(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func setConfig(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func setDisabledAppList(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func setIgnoreDisabledProfiles(_ call: CAPPluginCall) { rejectUnavailable(call) }
