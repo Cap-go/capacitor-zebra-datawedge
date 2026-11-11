@@ -63,8 +63,29 @@ public class ZebraDataWedgePlugin extends Plugin {
     private final Set<String> manualIntentActions = Collections.synchronizedSet(new LinkedHashSet<>());
     private final Map<String, Set<String>> profileScanIntentActions = new ConcurrentHashMap<>();
     private final Set<String> registeredIntentActions = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final DataWedgeDiagnostics diagnostics = new DataWedgeDiagnostics();
     private BroadcastReceiver receiver;
     private boolean receiverRegistered = false;
+
+    @PluginMethod
+    public void configureDiagnostics(PluginCall call) {
+        Integer capacity = call.getInt("maxEntries");
+        if ((call.getData().has("maxEntries") && capacity == null) || (capacity != null && (capacity < 1 || capacity > 1000))) {
+            call.reject("maxEntries must be between 1 and 1000.", "PARAMETER_INVALID");
+            return;
+        }
+        diagnostics.configure(
+            Boolean.TRUE.equals(call.getBoolean("enabled", false)),
+            capacity,
+            Boolean.TRUE.equals(call.getBoolean("reset", false))
+        );
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void getDiagnostics(PluginCall call) {
+        call.resolve(diagnostics.snapshot(getContext()));
+    }
 
     @Override
     public void load() {
@@ -80,7 +101,9 @@ public class ZebraDataWedgePlugin extends Plugin {
             } catch (IllegalArgumentException ignored) {}
             receiverRegistered = false;
         }
-        for (PendingRequest request : pendingRequests.values()) {
+        for (Map.Entry<String, PendingRequest> entry : pendingRequests.entrySet()) {
+            PendingRequest request = entry.getValue();
+            diagnostics.record(entry.getKey(), "CANCELLED");
             handler.removeCallbacks(request.timeoutRunnable);
             request.call.reject("Timed out waiting for DataWedge response.");
         }
@@ -688,7 +711,7 @@ public class ZebraDataWedgePlugin extends Plugin {
                 if (!failure && request.resultExtras.length > 0 && !request.hasQueryPayload(intent)) return;
                 if (!pendingRequests.remove(commandId, request)) return;
                 handler.removeCallbacks(request.timeoutRunnable);
-                resolvePendingRequest(request, intent);
+                resolvePendingRequest(request, intent, commandId);
                 return;
             }
         }
@@ -744,8 +767,20 @@ public class ZebraDataWedgePlugin extends Plugin {
         return false;
     }
 
+    /** Select one delivery mode consistently for every outgoing DataWedge API intent. */
+    private void dispatchDataWedgeIntent(Intent intent) {
+        // Zebra documents an ordinary-broadcast delivery delay starting on Android 14.
+        // Delivery completion is not a DataWedge result: callers still await RESULT_ACTION.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            getContext().sendOrderedBroadcast(intent, null);
+        } else {
+            getContext().sendBroadcast(intent);
+        }
+    }
+
     private void sendCommand(PluginCall call, Intent intent, String prefix, ResponseParser parser) {
         String commandId = ZebraDataWedge.newCommandIdentifier(prefix);
+        diagnostics.record(commandId, "SENT");
         if (!intent.hasExtra(ZebraDataWedge.EXTRA_SEND_RESULT)) {
             intent.putExtra(ZebraDataWedge.EXTRA_SEND_RESULT, ZebraDataWedge.VALUE_LAST_RESULT);
         }
@@ -753,6 +788,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         Runnable timeout = () -> {
             PendingRequest removed = pendingRequests.remove(commandId);
             if (removed != null) {
+                diagnostics.record(commandId, "TIMEOUT");
                 removed.call.reject("Timed out waiting for DataWedge response.", "DATAWEDGE_TIMEOUT");
             }
         };
@@ -768,10 +804,11 @@ public class ZebraDataWedgePlugin extends Plugin {
         );
         handler.postDelayed(timeout, REQUEST_TIMEOUT_MS);
         try {
-            getContext().sendBroadcast(intent);
+            dispatchDataWedgeIntent(intent);
         } catch (Exception exception) {
             pendingRequests.remove(commandId);
             handler.removeCallbacks(timeout);
+            diagnostics.record(commandId, "TRANSPORT_ERROR");
             call.reject("Failed to communicate with Zebra DataWedge.", "DATAWEDGE_TRANSPORT", exception);
         }
     }
@@ -792,7 +829,7 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private void dispatchNotification(Intent intent, PluginCall call) {
         try {
-            getContext().sendBroadcast(intent);
+            dispatchDataWedgeIntent(intent);
         } catch (Exception exception) {
             call.reject("DataWedge notification transport failed.", "DATAWEDGE_TRANSPORT", exception);
             return;
@@ -802,19 +839,23 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private void sendBroadcast(Intent intent, PluginCall call) {
         try {
-            getContext().sendBroadcast(intent);
+            dispatchDataWedgeIntent(intent);
         } catch (Exception exception) {
             call.reject("Failed to communicate with Zebra DataWedge.", exception);
         }
     }
 
-    private void resolvePendingRequest(PendingRequest request, Intent intent) {
+    private void resolvePendingRequest(PendingRequest request, Intent intent, String commandId) {
         try {
             rejectIfFailure(intent);
-            request.call.resolve(request.parser.parse(intent));
+            JSObject result = request.parser.parse(intent);
+            diagnostics.record(commandId, "SUCCESS");
+            request.call.resolve(result);
         } catch (ZebraDataWedgeException exception) {
+            diagnostics.record(commandId, "FAILURE");
             request.call.reject(exception.getMessage(), exception.getCode());
         } catch (Exception exception) {
+            diagnostics.record(commandId, "INVALID_RESPONSE");
             request.call.reject(exception.getMessage(), exception);
         }
     }

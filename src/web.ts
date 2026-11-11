@@ -2,6 +2,8 @@ import { WebPlugin } from '@capacitor/core';
 
 import type {
   CloneProfileOptions,
+  DiagnosticsOptions,
+  DataWedgeDiagnosticsSnapshot,
   CreateProfileOptions,
   DataWedgeNotifyOptions,
   DataWedgeStatusResult,
@@ -28,6 +30,13 @@ const unavailable = (...args: unknown[]) => {
 };
 
 export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin {
+  configureDiagnostics(options: DiagnosticsOptions): Promise<void> {
+    return unavailable(options);
+  }
+  getDiagnostics(): Promise<DataWedgeDiagnosticsSnapshot> {
+    return unavailable();
+  }
+
   cloneProfile(options: CloneProfileOptions): Promise<void> {
     return unavailable(options);
   }

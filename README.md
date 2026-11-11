@@ -171,6 +171,8 @@ Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge succe
 
 <docgen-index>
 
+- [`configureDiagnostics(...)`](#configurediagnostics)
+- [`getDiagnostics()`](#getdiagnostics)
 - [`cloneProfile(...)`](#cloneprofile)
 - [`createProfile(...)`](#createprofile)
 - [`deleteProfile(...)`](#deleteprofile)
@@ -219,6 +221,34 @@ Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge succe
 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
+
+### configureDiagnostics(...)
+
+```typescript
+configureDiagnostics(options: DiagnosticsOptions) => Promise<void>
+```
+
+Configure opt-in native command metadata tracing. Never enables DataWedge or scanner input.
+
+| Param         | Type                                                              |
+| ------------- | ----------------------------------------------------------------- |
+| **`options`** | <code><a href="#diagnosticsoptions">DiagnosticsOptions</a></code> |
+
+---
+
+### getDiagnostics()
+
+```typescript
+getDiagnostics() => Promise<DataWedgeDiagnosticsSnapshot>
+```
+
+Return a read-only native environment and trace snapshot. Does not send any DataWedge commands.
+Barcode values, intent bodies and arbitrary exception text are excluded. The application decides
+which device information to include when sharing this snapshot. Android only.
+
+**Returns:** <code>Promise&lt;<a href="#datawedgediagnosticssnapshot">DataWedgeDiagnosticsSnapshot</a>&gt;</code>
+
+---
 
 ### cloneProfile(...)
 
@@ -786,6 +816,28 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 ---
 
 ### Interfaces
+
+#### DiagnosticsOptions
+
+| Prop             | Type                 | Description                                                                                                     |
+| ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **`enabled`**    | <code>boolean</code> | Enable metadata tracing. Disabled by default; disabling does not erase previous entries.                        |
+| **`maxEntries`** | <code>number</code>  | Number of recent entries retained, from 1 to 1000. Initially 100; omitted values preserve the current capacity. |
+| **`reset`**      | <code>boolean</code> | Clear retained entries and reset elapsed time and dropped count. Default: false.                                |
+
+#### DataWedgeDiagnosticsSnapshot
+
+| Prop                     | Type                                                                                                                                                                               | Description                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **`diagnosticsVersion`** | <code>number</code>                                                                                                                                                                |                                                                                          |
+| **`enabled`**            | <code>boolean</code>                                                                                                                                                               |                                                                                          |
+| **`maxEntries`**         | <code>number</code>                                                                                                                                                                |                                                                                          |
+| **`droppedEntries`**     | <code>number</code>                                                                                                                                                                |                                                                                          |
+| **`manufacturer`**       | <code>string</code>                                                                                                                                                                |                                                                                          |
+| **`model`**              | <code>string</code>                                                                                                                                                                |                                                                                          |
+| **`androidVersion`**     | <code>string</code>                                                                                                                                                                |                                                                                          |
+| **`dataWedgePackage`**   | <code>{ status: 'installed' \| 'notFound' \| 'unavailable'; version?: string; }</code>                                                                                             | notFound means Android could not find the package; it is not a service-permission check. |
+| **`commands`**           | <code>{ commandIdentifier: string; outcome: 'SENT' \| 'SUCCESS' \| 'FAILURE' \| 'TIMEOUT' \| 'TRANSPORT_ERROR' \| 'CANCELLED' \| 'INVALID_RESPONSE'; elapsedMs: number; }[]</code> |                                                                                          |
 
 #### CloneProfileOptions
 
