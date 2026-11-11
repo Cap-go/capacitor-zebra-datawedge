@@ -279,7 +279,12 @@ export interface ScanSessionState {
 }
 
 export interface ZebraDataWedgePlugin extends Plugin {
-  /** Read-only native session API negotiation. Does not send a DataWedge command. */
+  /**
+   * Read native session API capabilities without sending a DataWedge command.
+   * Currently returns version 2 with customProfileNames, renewableLease and sessionAssociationDetails
+   * set to true. The version and capability flags identify supported behavior and allow applications
+   * to detect future session API changes. Future versions and capabilities will be documented.
+   */
   getScanSessionCapabilities(): Promise<{
     version: number;
     customProfileNames: boolean;
@@ -297,7 +302,8 @@ export interface ZebraDataWedgePlugin extends Plugin {
    * Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
    * The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
    * Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
-   * this process. Other low-level APIs are unchanged and must not mutate an active session's profile.
+   * this process. Use session APIs to trigger or end scanning and avoid changing the active session's
+   * profile through other low-level APIs.
    */
   beginScanSession(options: BeginScanSessionOptions): Promise<ScanSession>;
   /** Advanced manual renewal; normally called internally. Cannot revive an expired/closing session. */

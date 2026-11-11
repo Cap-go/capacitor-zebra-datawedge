@@ -24,7 +24,7 @@ try {
 }
 ```
 
-`triggerScanSession` checks the active profile and then waits for the software-trigger acknowledgement. It does not return the decoded barcode: scan data continues through the `scan` event. The existing `softScanTrigger` return contract is unchanged.
+`triggerScanSession` checks the active profile and then waits for the software-trigger acknowledgement. It does not return the decoded barcode: scan data continues through the `scan` event. Use `softScanTrigger` for low-level triggering outside a managed session.
 
 Ending a session cancels its pending calls, unregisters its scan action and disables Barcode Input in that profile, using the required scanner selector. The profile remains enabled and associated: disabling the whole profile could activate default-profile keystroke input. An acknowledged end returns `{ confirmed: true }`. A failed or unanswered end leaves the session closing and prevents a new session; retry end with the same token. Do not hand off to a camera scanner until cleanup is confirmed. Repeating a completed end is idempotent; a concurrent end while acknowledgement is pending rejects `SESSION_BUSY`.
 
@@ -32,9 +32,7 @@ Pause, destroy and deadline handling do not depend on JavaScript running. They a
 
 Once a profile has been enrolled in a session, `setConfig` requires the matching active token for it for the rest of that process. Do not mutate an active session profile through the other low-level APIs; session IDs coordinate this plugin, not Android authorization or enterprise policy. Low-level APIs for other profiles keep their existing behavior.
 
-The feature does not persist enrollment or run guessed profile repair at startup. Android can kill a process without lifecycle callbacks. Applications requiring recovery after process death must retain and validate their own recovery policy until a separate persistence contract is implemented. Package-prefix conventions alone are not proof of profile ownership.
-
-The generalized implementation is covered by native intent-fixture tests, including cancellation races and cleanup failure. Real DataWedge firmware, scanner readiness and managed-device policy still require device acceptance testing.
+Session enrollment lasts for the current process. Android can kill a process without lifecycle callbacks, so applications requiring recovery after process death must implement a recovery policy that validates profile ownership before changing scanner configuration. Package-prefix conventions alone cannot establish profile ownership.
 
 ## Automatic heartbeat and deadlines
 
@@ -46,7 +44,7 @@ You still need to call and await `endScanSession` when your workflow completes o
 
 `timeoutMs` is the absolute duration (default 300000, range 1..600000 ms). `leaseTimeoutMs` is the renewable native liveness deadline (default 10000, range 2000..60000 ms). Both start after association validation; the earlier deadline wins. These deadlines are independent of scanner readiness and the scanner's own illumination/decode timeout.
 
-`getScanSessionCapabilities()` returns version 2 and `renewableLease: true`. Applications shipping JavaScript independently of native binaries must negotiate support before adopting this API. Older native implementations do not gain renewal support through a web update.
+`getScanSessionCapabilities()` reads the native session API capabilities without sending a DataWedge command. It currently returns `version: 2`, `renewableLease: true`, `customProfileNames: true` and `sessionAssociationDetails: true`. These fields identify support for renewable leases, caller-supplied profile names and validated association details. The version and capability flags provide a way to detect future session API changes. Future versions and additional capabilities will be documented with their behavior.
 
 Listen for `scanSessionClosed` to distinguish `heartbeat_expired`, `max_duration`, `background`, `destroyed` and explicit `ended`. This event reports logical closure, not acknowledged hardware release. `getScanSessionState({ sessionId })` can inspect a matching active/closing session after a missed event without renewing it. After acknowledged end, state inspection rejects for that token. Keep any collected batch results outside the native lease if a new lease is needed.
 
@@ -60,7 +58,7 @@ Begin returns `appList`, a snapshot of the associations checked by its ownership
 
 The native operation constructs reply metadata and registers the action before granting ownership. Timeout, transport, parsing or lifecycle failure before ownership releases the reservation and leaves no session token to clean up. Background begin rejects `SESSION_INACTIVE`, another active/reserved session rejects `SESSION_BUSY`, and a profile without this app's association rejects `SESSION_UNASSOCIATED`. A foreign association remains `SESSION_OWNERSHIP`.
 
-JavaScript cancellation can race a successful native allocation. That rejection still includes `sessionId` and `cleanupConfirmed`; explicitly retry end if cleanup is unconfirmed. Application code should distinguish cancellation from scanner unavailability instead of automatically opening a camera after page hiding. New integrations use these public APIs directly; no legacy compatibility adapter is required.
+JavaScript cancellation can race a successful native allocation. That rejection still includes `sessionId` and `cleanupConfirmed`; explicitly retry end if cleanup is unconfirmed. Application code should distinguish cancellation from scanner unavailability instead of automatically opening a camera after page hiding.
 
 ## Updating an enrolled profile
 
