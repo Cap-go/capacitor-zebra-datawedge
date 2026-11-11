@@ -165,7 +165,7 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 
 ## Native scan sessions
 
-Use opt-in `beginScanSession()`, `triggerScanSession()`, `renewScanSession()`, and `endScanSession()` for a finite scan flow that releases scanner input on cancel, pause, or a native deadline. Check native support with the read-only `getScanSessionCapabilities()` API. Existing low-level methods stay available if you manage DataWedge yourself. See [native scan sessions](docs/scan-sessions.md).
+Use opt-in `beginScanSession()`, `triggerScanSession()`, `renewScanSession()`, and `endScanSession()` for a finite scan flow. Automatic cleanup on cancel, pause, or a native deadline is best-effort and does not confirm scanner release, so await `endScanSession()` when the workflow finishes and before handing off to another scanner. Check native support with the read-only `getScanSessionCapabilities()` API. Existing low-level methods stay available if you manage DataWedge yourself. See [native scan sessions](docs/scan-sessions.md).
 
 ## API
 
