@@ -21,7 +21,7 @@ try {
 }
 ```
 
-Tracing is disabled by default. `maxEntries` accepts 1–1000 and initially defaults to 100. Omitting it preserves the current capacity, including when disabling or re-enabling tracing. Each dispatch and terminal outcome is an entry. When full, the ring drops the oldest entry, including an earlier dispatch if necessary, so recent terminal outcomes can still be inspected. `droppedEntries` reports how many entries were discarded. Reads do not reset the trace; use `reset: true` explicitly. Disabling tracing preserves previous entries until reset.
+Tracing is disabled by default. `maxEntries` accepts 1 to 1000 and initially defaults to 100. Omitting it preserves the current capacity, including when disabling or re-enabling tracing. Each dispatch and terminal outcome is an entry. When full, the ring drops the oldest entry, including an earlier dispatch if necessary, so recent terminal outcomes can still be inspected. `droppedEntries` reports how many entries were discarded. Reads do not reset the trace; use `reset: true` explicitly. Disabling tracing preserves previous entries until reset.
 
 The trace contains generated command identifiers, sanitized outcomes and elapsed milliseconds. It excludes barcode values, arbitrary intent/configuration bodies and exception messages. Notification dispatch and the scan-result waits used by `softScanTrigger` and `softRfidTrigger` use separate transport paths and are excluded from the command trace. Applications can combine existing read-only DataWedge queries independently and retain partial results when some fail.
 
