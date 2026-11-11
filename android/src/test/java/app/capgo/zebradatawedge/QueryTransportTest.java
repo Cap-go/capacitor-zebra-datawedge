@@ -235,6 +235,11 @@ public class QueryTransportTest extends DataWedgeTestSupport {
             public void sendBroadcast(Intent intent) {
                 throw new IllegalStateException("fixture transport failure");
             }
+
+            @Override
+            public void sendOrderedBroadcast(Intent intent, String permission) {
+                throw new IllegalStateException("fixture transport failure");
+            }
         };
         Call call = new Call(new JSObject().put("profileName", profile));
         plugin.createProfile(call);

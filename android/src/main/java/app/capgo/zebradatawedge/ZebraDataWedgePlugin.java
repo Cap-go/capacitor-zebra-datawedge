@@ -731,6 +731,17 @@ public class ZebraDataWedgePlugin extends Plugin {
         return false;
     }
 
+    /** Select one delivery mode consistently for every outgoing DataWedge API intent. */
+    private void dispatchDataWedgeIntent(Intent intent) {
+        // Zebra documents an ordinary-broadcast delivery delay starting on Android 14.
+        // Delivery completion is not a DataWedge result: callers still await RESULT_ACTION.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            getContext().sendOrderedBroadcast(intent, null);
+        } else {
+            getContext().sendBroadcast(intent);
+        }
+    }
+
     private void sendCommand(PluginCall call, Intent intent, String prefix, ResponseParser parser) {
         String commandId = ZebraDataWedge.newCommandIdentifier(prefix);
         intent.putExtra(ZebraDataWedge.EXTRA_SEND_RESULT, ZebraDataWedge.VALUE_LAST_RESULT);
@@ -744,7 +755,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         pendingRequests.put(commandId, new PendingRequest(call, parser, timeout, queryResultExtras(intent)));
         handler.postDelayed(timeout, REQUEST_TIMEOUT_MS);
         try {
-            getContext().sendBroadcast(intent);
+            dispatchDataWedgeIntent(intent);
         } catch (Exception exception) {
             pendingRequests.remove(commandId);
             handler.removeCallbacks(timeout);
@@ -768,7 +779,7 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private void dispatchNotification(Intent intent, PluginCall call) {
         try {
-            getContext().sendBroadcast(intent);
+            dispatchDataWedgeIntent(intent);
         } catch (Exception exception) {
             call.reject("DataWedge notification transport failed.", "DATAWEDGE_TRANSPORT", exception);
             return;
@@ -778,7 +789,7 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private void sendBroadcast(Intent intent, PluginCall call) {
         try {
-            getContext().sendBroadcast(intent);
+            dispatchDataWedgeIntent(intent);
         } catch (Exception exception) {
             call.reject("Failed to communicate with Zebra DataWedge.", exception);
         }
