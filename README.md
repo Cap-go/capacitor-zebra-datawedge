@@ -163,6 +163,10 @@ On Android 14/API 34 and later, identifier-free replies that share platform send
 
 Query correlation and payload validation do not guarantee sender authenticity. Any installed app can inject a matching identifier-free query result on every Android version, including by withholding its identity on API 34 and later. Replies with matching command identifiers, scan data and notification broadcasts also lack complete sender authentication. See the [known sender-authentication limitations](https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25) for details.
 
+## Native scan sessions
+
+Use opt-in `beginScanSession()`, `triggerScanSession()`, `renewScanSession()`, and `endScanSession()` for a finite scan flow that releases scanner input on cancel, pause, or a native deadline. Check native support with the read-only `getScanSessionCapabilities()` API. Existing low-level methods stay available if you manage DataWedge yourself. See [native scan sessions](docs/scan-sessions.md).
+
 ## API
 
 <docgen-index>

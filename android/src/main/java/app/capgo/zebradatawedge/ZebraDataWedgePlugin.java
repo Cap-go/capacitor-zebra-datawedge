@@ -996,6 +996,10 @@ public class ZebraDataWedgePlugin extends Plugin {
         handleIntent(context, intent, sentFromUid, sentFromPackage);
     }
 
+    void sendCommandForTest(PluginCall call, Intent intent, String prefix) {
+        sendCommand(call, intent, prefix, this::emptyResponse);
+    }
+
     private void handleIntent(Context context, Intent intent, int sentFromUid, String sentFromPackage) {
         String action = intent.getAction();
         if (action == null) {
@@ -1090,7 +1094,9 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     private void sendCommand(PluginCall call, Intent intent, String prefix, ResponseParser parser, Runnable onFailure, String sessionId) {
         String commandId = ZebraDataWedge.newCommandIdentifier(prefix);
-        intent.putExtra(ZebraDataWedge.EXTRA_SEND_RESULT, ZebraDataWedge.VALUE_LAST_RESULT);
+        if (!intent.hasExtra(ZebraDataWedge.EXTRA_SEND_RESULT)) {
+            intent.putExtra(ZebraDataWedge.EXTRA_SEND_RESULT, ZebraDataWedge.VALUE_LAST_RESULT);
+        }
         intent.putExtra(ZebraDataWedge.EXTRA_COMMAND_IDENTIFIER, commandId);
         Runnable timeout = () -> {
             PendingRequest removed = pendingRequests.remove(commandId);
