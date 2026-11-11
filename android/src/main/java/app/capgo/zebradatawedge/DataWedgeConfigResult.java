@@ -24,11 +24,19 @@ final class DataWedgeConfigResult {
             if (!(module instanceof String)) module = row.get("PLUGIN_NAME");
             Object result = row.get("RESULT");
             Object code = row.get("RESULT_CODE");
-            if (code instanceof String && !"SUCCESS".equals(code)) return safeCode((String) code);
-            if (code instanceof String[]) {
-                for (String value : (String[]) code) if (!"SUCCESS".equals(value)) return safeCode(value);
-            } else if (code != null && !(code instanceof String)) return "CONFIG_RESULT_INVALID";
-            if (!"SUCCESS".equals(result) && !"SUCCESS".equals(code)) return "CONFIG_RESULT_INVALID";
+            boolean successfulCode = false;
+            if (code instanceof String) {
+                if (!"SUCCESS".equals(code)) return safeCode((String) code);
+                successfulCode = true;
+            } else if (code instanceof String[]) {
+                String[] codes = (String[]) code;
+                if (codes.length == 0) return "CONFIG_RESULT_INVALID";
+                for (String value : codes) if (!"SUCCESS".equals(value)) return safeCode(value);
+                successfulCode = true;
+            } else if (code != null) return "CONFIG_RESULT_INVALID";
+            // An explicit failure or malformed RESULT cannot be overridden by a success code.
+            if (result != null && !"SUCCESS".equals(result)) return "CONFIG_RESULT_INVALID";
+            if (result == null && !successfulCode) return "CONFIG_RESULT_INVALID";
             if (module instanceof String) covered.add((String) module);
         }
         for (int index = 0; plugins != null && index < plugins.length(); index++) {

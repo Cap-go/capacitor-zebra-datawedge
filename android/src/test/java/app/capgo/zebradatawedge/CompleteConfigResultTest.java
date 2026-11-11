@@ -152,6 +152,52 @@ public class CompleteConfigResultTest extends DataWedgeTestSupport {
     }
 
     @Test
+    public void successCodeArrayWithoutResultAcceptsConfiguration() {
+        Call call = completeConfigCall();
+        ArrayList<Bundle> rows = new ArrayList<>();
+        for (String name : new String[] { "BARCODE", "INTENT" }) {
+            Bundle row = new Bundle();
+            row.putString("MODULE", name);
+            row.putStringArray("RESULT_CODE", new String[] { "SUCCESS", "SUCCESS" });
+            rows.add(row);
+        }
+        receive(resultFor(lastBroadcast()).putParcelableArrayListExtra("RESULT_LIST", rows));
+        assertNull(call.error);
+        assertEquals(1, call.completions);
+    }
+
+    @Test
+    public void explicitFailureCannotBeOverriddenByScalarOrArraySuccessCode() {
+        for (boolean array : new boolean[] { false, true }) {
+            Call call = completeConfigCall();
+            ArrayList<Bundle> rows = new ArrayList<>();
+            Bundle row = configResult("BARCODE", "FAILURE", "SUCCESS");
+            if (array) row.putStringArray("RESULT_CODE", new String[] { "SUCCESS" });
+            rows.add(row);
+            rows.add(configResult("INTENT", "SUCCESS", null));
+            receive(resultFor(lastBroadcast()).putParcelableArrayListExtra("RESULT_LIST", rows));
+            assertEquals("CONFIG_RESULT_INVALID", call.error);
+            assertEquals(1, call.completions);
+        }
+    }
+
+    @Test
+    public void malformedResultOrEmptyCodeArrayCannotEstablishSuccess() {
+        for (boolean emptyCodes : new boolean[] { false, true }) {
+            Call call = completeConfigCall();
+            ArrayList<Bundle> rows = new ArrayList<>();
+            Bundle row = configResult("BARCODE", null, "SUCCESS");
+            if (emptyCodes) row.putStringArray("RESULT_CODE", new String[0]);
+            else row.putBoolean("RESULT", true);
+            rows.add(row);
+            rows.add(configResult("INTENT", "SUCCESS", null));
+            receive(resultFor(lastBroadcast()).putParcelableArrayListExtra("RESULT_LIST", rows));
+            assertEquals("CONFIG_RESULT_INVALID", call.error);
+            assertEquals(1, call.completions);
+        }
+    }
+
+    @Test
     public void pluginNameAliasCanIdentifySuccessfulRows() {
         Call call = completeConfigCall();
         ArrayList<Bundle> rows = new ArrayList<>();
