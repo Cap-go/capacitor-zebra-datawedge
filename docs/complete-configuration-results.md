@@ -3,28 +3,39 @@
 DataWedge's default LAST_RESULT reply can report success for the last plugin even if an earlier plugin failed. `setConfig` uses this reply mode by default. To validate a multi-plugin update, opt in after checking native support:
 
 ```ts
+import { Capacitor, ExceptionCode } from '@capacitor/core';
 import { ZebraDataWedge, DataWedgeConfigMode, DataWedgePlugin } from '@capgo/capacitor-zebra-datawedge';
+import type { DataWedgePluginConfig } from '@capgo/capacitor-zebra-datawedge';
+
+if (Capacitor.getPlatform() !== 'android') {
+  throw new Error('DataWedge configuration requires Android.');
+}
 
 let supported = false;
 try {
   supported = (await ZebraDataWedge.getConfigurationCapabilities()).completeConfigResults;
-} catch {
-  // Native complete-result support is unavailable.
+} catch (error) {
+  // A native plugin without this capability API can still configure plugins individually.
+  if ((error as { code?: string })?.code !== ExceptionCode.Unimplemented) {
+    throw error;
+  }
 }
-// If unsupported, configure each plugin separately and await its acknowledgement.
+
+const config = { profileName: 'WarehousePicking', configMode: DataWedgeConfigMode.UPDATE };
+const pluginConfigs: DataWedgePluginConfig[] = [
+  {
+    pluginName: DataWedgePlugin.BARCODE,
+    paramList: { configure_all_scanners: 'true', scanner_input_enabled: 'false' },
+  },
+  { pluginName: DataWedgePlugin.KEYSTROKE, paramList: { keystroke_output_enabled: 'false' } },
+];
+
 if (supported) {
-  await ZebraDataWedge.setConfig({
-    profileName: 'WarehousePicking',
-    configMode: DataWedgeConfigMode.UPDATE,
-    completeResult: true,
-    pluginConfigs: [
-      {
-        pluginName: DataWedgePlugin.BARCODE,
-        paramList: { configure_all_scanners: 'true', scanner_input_enabled: 'false' },
-      },
-      { pluginName: DataWedgePlugin.KEYSTROKE, paramList: { keystroke_output_enabled: 'false' } },
-    ],
-  });
+  await ZebraDataWedge.setConfig({ ...config, completeResult: true, pluginConfigs });
+} else {
+  for (const pluginConfig of pluginConfigs) {
+    await ZebraDataWedge.setConfig({ ...config, pluginConfigs: [pluginConfig] });
+  }
 }
 ```
 
