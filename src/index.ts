@@ -21,10 +21,13 @@ import type {
   ZebraScanResult,
 } from './definitions';
 import { createZebraNotification } from './notification-registration';
+import { withManagedScanSessions } from './scan-session-controller';
 
-const ZebraDataWedge = registerPlugin<ZebraDataWedgePlugin>('ZebraDataWedge', {
-  web: () => import('./web').then((m) => new m.ZebraDataWedgeWeb()),
-});
+const ZebraDataWedge = withManagedScanSessions(
+  registerPlugin<ZebraDataWedgePlugin>('ZebraDataWedge', {
+    web: () => import('./web').then((m) => new m.ZebraDataWedgeWeb()),
+  }),
+);
 
 export const ZebraConfiguration = {
   cloneProfile: (options: CloneProfileOptions): Promise<void> => ZebraDataWedge.cloneProfile(options),

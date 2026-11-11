@@ -6,6 +6,12 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "ZebraDataWedgePlugin"
     public let jsName = "ZebraDataWedge"
     public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "renewScanSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getScanSessionState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "endScanSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "triggerScanSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "beginScanSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getScanSessionCapabilities", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "configureDiagnostics", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getDiagnostics", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cloneProfile", returnType: CAPPluginReturnPromise),
@@ -54,6 +60,12 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
         call.reject(implementation.unavailableMessage())
     }
 
+    @objc public func getScanSessionCapabilities(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func beginScanSession(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func triggerScanSession(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func renewScanSession(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func getScanSessionState(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func endScanSession(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func configureDiagnostics(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func getDiagnostics(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func cloneProfile(_ call: CAPPluginCall) { rejectUnavailable(call) }

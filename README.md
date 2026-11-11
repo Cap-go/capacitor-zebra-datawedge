@@ -163,6 +163,10 @@ On Android 14/API 34 and later, identifier-free replies that share platform send
 
 Query correlation and payload validation do not guarantee sender authenticity. Any installed app can inject a matching identifier-free query result on every Android version, including by withholding its identity on API 34 and later. Replies with matching command identifiers, scan data and notification broadcasts also lack complete sender authentication. See the [known sender-authentication limitations](https://github.com/Cap-go/capacitor-zebra-datawedge/issues/25) for details.
 
+## Native scan sessions
+
+Use opt-in `beginScanSession()`, `triggerScanSession()`, `renewScanSession()`, and `endScanSession()` for a finite scan flow. Automatic cleanup on cancel, pause, or a native deadline is best-effort and does not confirm scanner release, so await `endScanSession()` when the workflow finishes and before handing off to another scanner. Check native support with the read-only `getScanSessionCapabilities()` API. Existing low-level methods stay available if you manage DataWedge yourself. See [native scan sessions](docs/scan-sessions.md).
+
 ## Validating multi-plugin configuration
 
 Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge success for every requested plugin rather than only its last result. Check native support with the read-only `getConfigurationCapabilities()` API when serving JS to older binaries. Existing calls retain their LAST_RESULT default. Validation does not roll back device configuration or establish scanner readiness; configure input disabled before a separate activation. See [complete configuration results](docs/complete-configuration-results.md).
@@ -171,6 +175,12 @@ Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge succe
 
 <docgen-index>
 
+- [`getScanSessionCapabilities()`](#getscansessioncapabilities)
+- [`beginScanSession(...)`](#beginscansession)
+- [`renewScanSession(...)`](#renewscansession)
+- [`getScanSessionState(...)`](#getscansessionstate)
+- [`triggerScanSession(...)`](#triggerscansession)
+- [`endScanSession(...)`](#endscansession)
 - [`configureDiagnostics(...)`](#configurediagnostics)
 - [`getDiagnostics()`](#getdiagnostics)
 - [`cloneProfile(...)`](#cloneprofile)
@@ -211,6 +221,7 @@ Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge succe
 - [`switchScannerParams(...)`](#switchscannerparams)
 - [`switchToProfile(...)`](#switchtoprofile)
 - [`getPluginVersion()`](#getpluginversion)
+- [`addListener('scanSessionClosed', ...)`](#addlistenerscansessionclosed-)
 - [`addListener('scan', ...)`](#addlistenerscan-)
 - [`addListener('notification', ...)`](#addlistenernotification-)
 - [Interfaces](#interfaces)
@@ -221,6 +232,114 @@ Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge succe
 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
+
+### getScanSessionCapabilities()
+
+```typescript
+getScanSessionCapabilities() => Promise<{ version: number; customProfileNames: boolean; renewableLease: boolean; sessionAssociationDetails: boolean; }>
+```
+
+Read native session API capabilities without sending a DataWedge command.
+Currently returns version 2 with customProfileNames, renewableLease and sessionAssociationDetails
+set to true. The version and capability flags identify supported behavior and allow applications
+to detect future session API changes. Future versions and capabilities will be documented.
+
+**Returns:** <code>Promise&lt;{ version: number; customProfileNames: boolean; renewableLease: boolean; sessionAssociationDetails: boolean; }&gt;</code>
+
+---
+
+### beginScanSession(...)
+
+```typescript
+beginScanSession(options: BeginScanSessionOptions) => Promise<ScanSession>
+```
+
+Validate an existing app-owned profile and acquire an opt-in exclusive native session.
+Automatically renews the native liveness lease from JS until end, native closure, page hiding,
+renewal failure or the absolute timeout. Application completion/cancellation must still call end.
+Returns the validated appList snapshot; it is not a cache or permission for later profile mutations.
+Native begin failures leave no allocated session. Background begin rejects SESSION_INACTIVE;
+another reserved session rejects SESSION_BUSY; an unassociated profile rejects SESSION_UNASSOCIATED.
+If JS cancellation races successful allocation, rejection includes sessionId and cleanupConfirmed for cleanup retry.
+Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
+The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
+Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
+this process. Use session APIs to trigger or end scanning and avoid changing the active session's
+profile through other low-level APIs.
+
+| Param         | Type                                                                        |
+| ------------- | --------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#beginscansessionoptions">BeginScanSessionOptions</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#scansession">ScanSession</a>&gt;</code>
+
+---
+
+### renewScanSession(...)
+
+```typescript
+renewScanSession(options: { sessionId: string; }) => Promise<ScanSessionState>
+```
+
+Advanced manual renewal; normally called internally. Cannot revive an expired/closing session.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+**Returns:** <code>Promise&lt;<a href="#scansessionstate">ScanSessionState</a>&gt;</code>
+
+---
+
+### getScanSessionState(...)
+
+```typescript
+getScanSessionState(options: { sessionId: string; }) => Promise<ScanSessionState>
+```
+
+Inspect the matching session, including closure reason. Does not renew or confirm cleanup.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+**Returns:** <code>Promise&lt;<a href="#scansessionstate">ScanSessionState</a>&gt;</code>
+
+---
+
+### triggerScanSession(...)
+
+```typescript
+triggerScanSession(options: { sessionId: string; }) => Promise<void>
+```
+
+Verify the active profile, then dispatch START_SCANNING for a foreground session. Scan values arrive via the scan event.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+---
+
+### endScanSession(...)
+
+```typescript
+endScanSession(options: { sessionId: string; }) => Promise<{ confirmed: boolean; }>
+```
+
+Cancel owned pending calls, remove the action and await targeted Barcode Input disable.
+Resolves only after DataWedge acknowledges cleanup. A failed/unanswered end is retryable and
+blocks new sessions; do not start a camera scanner until confirmed. Concurrent end calls reject
+SESSION_BUSY; repeating a completed end is idempotent. Pause/deadline cleanup is best effort and
+still requires explicit end acknowledgement. No persistent process-death recovery is enabled.
+
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ sessionId: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ confirmed: boolean; }&gt;</code>
+
+---
 
 ### configureDiagnostics(...)
 
@@ -785,6 +904,23 @@ getPluginVersion() => Promise<PluginVersionResult>
 
 ---
 
+### addListener('scanSessionClosed', ...)
+
+```typescript
+addListener(eventName: 'scanSessionClosed', listenerFunc: (event: ScanSessionState) => void) => Promise<PluginListenerHandle>
+```
+
+Native best-effort closure notification. Always explicitly end to confirm hardware cleanup.
+
+| Param              | Type                                                                              |
+| ------------------ | --------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'scanSessionClosed'</code>                                                  |
+| **`listenerFunc`** | <code>(event: <a href="#scansessionstate">ScanSessionState</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+---
+
 ### addListener('scan', ...)
 
 ```typescript
@@ -816,6 +952,42 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 ---
 
 ### Interfaces
+
+#### ScanSession
+
+| Prop                 | Type                              | Description                                                                          |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------ |
+| **`appList`**        | <code>DataWedgeAppConfig[]</code> | Snapshot of the associations validated by begin; avoids a redundant getConfig query. |
+| **`sessionId`**      | <code>string</code>               |                                                                                      |
+| **`profileName`**    | <code>string</code>               |                                                                                      |
+| **`intentAction`**   | <code>string</code>               | Configure this action in the profile's INTENT output before triggering.              |
+| **`timeoutMs`**      | <code>number</code>               |                                                                                      |
+| **`leaseTimeoutMs`** | <code>number</code>               |                                                                                      |
+
+#### DataWedgeAppConfig
+
+| Prop               | Type                  |
+| ------------------ | --------------------- |
+| **`activityList`** | <code>string[]</code> |
+| **`packageName`**  | <code>string</code>   |
+
+#### BeginScanSessionOptions
+
+| Prop                 | Type                 | Description                                                                                             |
+| -------------------- | -------------------- | ------------------------------------------------------------------------------------------------------- |
+| **`profileName`**    | <code>string</code>  | Existing profile associated exclusively with this application. No naming suffix is required.            |
+| **`timeoutMs`**      | <code>number</code>  | Absolute session duration, 1..600000 ms. Default: 300000 (five minutes). Renewal never extends it.      |
+| **`leaseTimeoutMs`** | <code>number</code>  | Native liveness deadline, 2000..60000 ms. Default: 10000. Starts after association validation.          |
+| **`autoRenew`**      | <code>boolean</code> | Advanced use only: disable the built-in JS heartbeat and call renewScanSession yourself. Default: true. |
+
+#### ScanSessionState
+
+| Prop              | Type                                                                                         | Description                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **`sessionId`**   | <code>string</code>                                                                          |                                                                             |
+| **`active`**      | <code>boolean</code>                                                                         |                                                                             |
+| **`reason`**      | <code>'ended' \| 'background' \| 'destroyed' \| 'heartbeat_expired' \| 'max_duration'</code> | Present after closure; does not mean cleanup was acknowledged by DataWedge. |
+| **`remainingMs`** | <code>number</code>                                                                          | Milliseconds until the earlier native deadline; zero when closing.          |
 
 #### DiagnosticsOptions
 
@@ -877,19 +1049,13 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | Prop                   | Type                                                                | Description                                                                                                                                                                                                                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`completeResult`**   | <code>boolean</code>                                                | Opt in to COMPLETE_RESULT validation of every requested plugin. Default false (LAST_RESULT). Requires a native binary with getConfigurationCapabilities().completeConfigResults. Rejection does not roll back DataWedge changes; configure input disabled before activation.                                  |
+| **`sessionId`**        | <code>string</code>                                                 | Matching active session token for an enrolled profile. Enrollment lasts for the process, including after end; begin a new session before configuring that profile again.                                                                                                                                      |
 | **`appList`**          | <code>DataWedgeAppConfig[]</code>                                   |                                                                                                                                                                                                                                                                                                               |
 | **`configMode`**       | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> | DataWedge defaults to OVERWRITE when omitted, which resets an existing profile, including associations. Use UPDATE for incremental changes to an existing profile, especially during a scan session.                                                                                                          |
 | **`pluginConfigs`**    | <code>DataWedgePluginConfig[]</code>                                |                                                                                                                                                                                                                                                                                                               |
 | **`profileEnabled`**   | <code>boolean</code>                                                |                                                                                                                                                                                                                                                                                                               |
 | **`profileName`**      | <code>string</code>                                                 |                                                                                                                                                                                                                                                                                                               |
 | **`scanIntentAction`** | <code>string</code>                                                 | Registers this intent action in the plugin receiver after a successful `setConfig` (runtime only; call again on every app start). `INTENT` entries in `pluginConfigs` also register their `intent_action` values automatically after a successful `setConfig`, whether or not `scanIntentAction` is supplied. |
-
-#### DataWedgeAppConfig
-
-| Prop               | Type                  |
-| ------------------ | --------------------- |
-| **`activityList`** | <code>string[]</code> |
-| **`packageName`**  | <code>string</code>   |
 
 #### DataWedgePluginConfig
 

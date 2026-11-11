@@ -40,6 +40,14 @@ abstract class DataWedgeTestSupport {
             return transportContext;
         }
 
+        void pause() {
+            handleOnPause();
+        }
+
+        void resume() {
+            handleOnResume();
+        }
+
         void destroy() {
             handleOnDestroy();
         }

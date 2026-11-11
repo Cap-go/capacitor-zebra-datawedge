@@ -175,6 +175,11 @@ export interface SetConfigOptions {
    * Rejection does not roll back DataWedge changes; configure input disabled before activation.
    */
   completeResult?: boolean;
+  /**
+   * Matching active session token for an enrolled profile. Enrollment lasts for the process,
+   * including after end; begin a new session before configuring that profile again.
+   */
+  sessionId?: string;
   appList?: DataWedgeAppConfig[];
   /** DataWedge defaults to OVERWRITE when omitted, which resets an existing profile, including associations.
    * Use UPDATE for incremental changes to an existing profile, especially during a scan session.
@@ -253,6 +258,37 @@ export interface IgnoreDisabledProfilesResult {
   enabled: boolean;
 }
 
+export interface BeginScanSessionOptions {
+  /** Existing profile associated exclusively with this application. No naming suffix is required. */
+  profileName: string;
+  /** Absolute session duration, 1..600000 ms. Default: 300000 (five minutes). Renewal never extends it. */
+  timeoutMs?: number;
+  /** Native liveness deadline, 2000..60000 ms. Default: 10000. Starts after association validation. */
+  leaseTimeoutMs?: number;
+  /** Advanced use only: disable the built-in JS heartbeat and call renewScanSession yourself. Default: true. */
+  autoRenew?: boolean;
+}
+
+export interface ScanSession {
+  /** Snapshot of the associations validated by begin; avoids a redundant getConfig query. */
+  appList: DataWedgeAppConfig[];
+  sessionId: string;
+  profileName: string;
+  /** Configure this action in the profile's INTENT output before triggering. */
+  intentAction: string;
+  timeoutMs: number;
+  leaseTimeoutMs: number;
+}
+
+export interface ScanSessionState {
+  sessionId: string;
+  active: boolean;
+  /** Present after closure; does not mean cleanup was acknowledged by DataWedge. */
+  reason?: 'ended' | 'background' | 'destroyed' | 'heartbeat_expired' | 'max_duration';
+  /** Milliseconds until the earlier native deadline; zero when closing. */
+  remainingMs: number;
+}
+
 export interface DiagnosticsOptions {
   /** Enable metadata tracing. Disabled by default; disabling does not erase previous entries. */
   enabled: boolean;
@@ -280,6 +316,47 @@ export interface DataWedgeDiagnosticsSnapshot {
 }
 
 export interface ZebraDataWedgePlugin extends Plugin {
+  /**
+   * Read native session API capabilities without sending a DataWedge command.
+   * Currently returns version 2 with customProfileNames, renewableLease and sessionAssociationDetails
+   * set to true. The version and capability flags identify supported behavior and allow applications
+   * to detect future session API changes. Future versions and capabilities will be documented.
+   */
+  getScanSessionCapabilities(): Promise<{
+    version: number;
+    customProfileNames: boolean;
+    renewableLease: boolean;
+    sessionAssociationDetails: boolean;
+  }>;
+  /**
+   * Validate an existing app-owned profile and acquire an opt-in exclusive native session.
+   * Automatically renews the native liveness lease from JS until end, native closure, page hiding,
+   * renewal failure or the absolute timeout. Application completion/cancellation must still call end.
+   * Returns the validated appList snapshot; it is not a cache or permission for later profile mutations.
+   * Native begin failures leave no allocated session. Background begin rejects SESSION_INACTIVE;
+   * another reserved session rejects SESSION_BUSY; an unassociated profile rejects SESSION_UNASSOCIATED.
+   * If JS cancellation races successful allocation, rejection includes sessionId and cleanupConfirmed for cleanup retry.
+   * Heartbeat handling requires no framework lifecycle integration. autoRenew: false is for experts.
+   * The caller configures INTENT output/decoders and verifies scanner readiness. No profile is created.
+   * Profiles enrolled in sessions require the matching sessionId on subsequent setConfig calls during
+   * this process. Use session APIs to trigger or end scanning and avoid changing the active session's
+   * profile through other low-level APIs.
+   */
+  beginScanSession(options: BeginScanSessionOptions): Promise<ScanSession>;
+  /** Advanced manual renewal; normally called internally. Cannot revive an expired/closing session. */
+  renewScanSession(options: { sessionId: string }): Promise<ScanSessionState>;
+  /** Inspect the matching session, including closure reason. Does not renew or confirm cleanup. */
+  getScanSessionState(options: { sessionId: string }): Promise<ScanSessionState>;
+  /** Verify the active profile, then dispatch START_SCANNING for a foreground session. Scan values arrive via the scan event. */
+  triggerScanSession(options: { sessionId: string }): Promise<void>;
+  /**
+   * Cancel owned pending calls, remove the action and await targeted Barcode Input disable.
+   * Resolves only after DataWedge acknowledges cleanup. A failed/unanswered end is retryable and
+   * blocks new sessions; do not start a camera scanner until confirmed. Concurrent end calls reject
+   * SESSION_BUSY; repeating a completed end is idempotent. Pause/deadline cleanup is best effort and
+   * still requires explicit end acknowledgement. No persistent process-death recovery is enabled.
+   */
+  endScanSession(options: { sessionId: string }): Promise<{ confirmed: boolean }>;
   /** Configure opt-in native command metadata tracing. Never enables DataWedge or scanner input. */
   configureDiagnostics(options: DiagnosticsOptions): Promise<void>;
   /**
@@ -460,6 +537,11 @@ export interface ZebraDataWedgePlugin extends Plugin {
   switchScannerParams(options: SwitchScannerParamsOptions): Promise<void>;
   switchToProfile(options: { profileName: string }): Promise<void>;
   getPluginVersion(): Promise<PluginVersionResult>;
+  /** Native best-effort closure notification. Always explicitly end to confirm hardware cleanup. */
+  addListener(
+    eventName: 'scanSessionClosed',
+    listenerFunc: (event: ScanSessionState) => void,
+  ): Promise<PluginListenerHandle>;
   addListener(eventName: 'scan', listenerFunc: (event: ZebraScanResult) => void): Promise<PluginListenerHandle>;
   addListener(
     eventName: 'notification',
