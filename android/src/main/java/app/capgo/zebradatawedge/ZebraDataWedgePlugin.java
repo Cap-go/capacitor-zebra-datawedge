@@ -69,8 +69,8 @@ public class ZebraDataWedgePlugin extends Plugin {
 
     @PluginMethod
     public void configureDiagnostics(PluginCall call) {
-        Integer capacity = call.getInt("maxEntries", 100);
-        if (capacity == null || capacity < 1 || capacity > 1000) {
+        Integer capacity = call.getInt("maxEntries");
+        if ((call.getData().has("maxEntries") && capacity == null) || (capacity != null && (capacity < 1 || capacity > 1000))) {
             call.reject("maxEntries must be between 1 and 1000.", "PARAMETER_INVALID");
             return;
         }

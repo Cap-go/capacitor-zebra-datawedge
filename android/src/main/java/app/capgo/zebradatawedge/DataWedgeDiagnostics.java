@@ -18,15 +18,15 @@ final class DataWedgeDiagnostics {
     private int dropped;
     private long startedAt;
 
-    synchronized void configure(boolean enabled, int capacity, boolean reset) {
+    synchronized void configure(boolean enabled, Integer capacity, boolean reset) {
         this.enabled = enabled;
-        this.capacity = capacity;
+        if (capacity != null) this.capacity = capacity;
         if (reset) {
             events.clear();
             dropped = 0;
             startedAt = SystemClock.elapsedRealtime();
         }
-        while (events.size() > capacity) {
+        while (events.size() > this.capacity) {
             events.removeFirst();
             dropped++;
         }

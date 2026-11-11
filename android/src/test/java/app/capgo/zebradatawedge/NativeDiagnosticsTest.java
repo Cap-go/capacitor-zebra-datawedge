@@ -85,6 +85,40 @@ public class NativeDiagnosticsTest extends DataWedgeTestSupport {
     }
 
     @Test
+    public void disableAndReenableWithoutCapacityPreserveLargerTrace() {
+        enable(1000);
+        for (int index = 0; index < 75; index++) {
+            Call call = new Call(new JSObject().put("profileName", profile));
+            plugin.createProfile(call);
+            receive(resultFor(lastBroadcast()));
+            assertNull(call.error);
+        }
+        JSObject before = snapshot();
+        assertEquals(150, before.optJSONArray("commands").length());
+        for (boolean enabled : new boolean[] { false, true }) {
+            Call configure = new Call(new JSObject().put("enabled", enabled));
+            plugin.configureDiagnostics(configure);
+            assertNull(configure.error);
+            JSObject after = snapshot();
+            assertEquals(1000, after.optInt("maxEntries"));
+            assertEquals(before.optJSONArray("commands").toString(), after.optJSONArray("commands").toString());
+            assertEquals(before.optInt("droppedEntries"), after.optInt("droppedEntries"));
+        }
+    }
+
+    @Test
+    public void explicitCapacityChangeStillTrimsOldEntries() {
+        enable(10);
+        plugin.createProfile(new Call(new JSObject().put("profileName", profile)));
+        receive(resultFor(lastBroadcast()));
+        plugin.configureDiagnostics(new Call(new JSObject().put("enabled", false).put("maxEntries", 1)));
+        JSObject after = snapshot();
+        assertEquals(1, after.optInt("maxEntries"));
+        assertEquals(1, after.optJSONArray("commands").length());
+        assertEquals(1, after.optInt("droppedEntries"));
+    }
+
+    @Test
     public void timeoutAndTransportFailureHaveSanitizedOutcomes() {
         enable(10);
         plugin.getVersionInfo(new Call(new JSObject()));

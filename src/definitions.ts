@@ -248,7 +248,7 @@ export interface IgnoreDisabledProfilesResult {
 export interface DiagnosticsOptions {
   /** Enable metadata tracing. Disabled by default; disabling does not erase previous entries. */
   enabled: boolean;
-  /** Number of recent entries retained, from 1 to 1000. Default: 100. */
+  /** Number of recent entries retained, from 1 to 1000. Initially 100; omitted values preserve the current capacity. */
   maxEntries?: number;
   /** Clear retained entries and reset elapsed time and dropped count. Default: false. */
   reset?: boolean;

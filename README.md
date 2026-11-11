@@ -798,11 +798,11 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 #### DiagnosticsOptions
 
-| Prop             | Type                 | Description                                                                              |
-| ---------------- | -------------------- | ---------------------------------------------------------------------------------------- |
-| **`enabled`**    | <code>boolean</code> | Enable metadata tracing. Disabled by default; disabling does not erase previous entries. |
-| **`maxEntries`** | <code>number</code>  | Number of recent entries retained, from 1 to 1000. Default: 100.                         |
-| **`reset`**      | <code>boolean</code> | Clear retained entries and reset elapsed time and dropped count. Default: false.         |
+| Prop             | Type                 | Description                                                                                                     |
+| ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **`enabled`**    | <code>boolean</code> | Enable metadata tracing. Disabled by default; disabling does not erase previous entries.                        |
+| **`maxEntries`** | <code>number</code>  | Number of recent entries retained, from 1 to 1000. Initially 100; omitted values preserve the current capacity. |
+| **`reset`**      | <code>boolean</code> | Clear retained entries and reset elapsed time and dropped count. Default: false.                                |
 
 #### DataWedgeDiagnosticsSnapshot
 
