@@ -87,6 +87,10 @@ export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin
     return unavailable();
   }
 
+  getConfigurationCapabilities(): Promise<{ completeConfigResults: boolean }> {
+    return unavailable();
+  }
+
   setConfig(options: SetConfigOptions): Promise<void> {
     return unavailable(options);
   }

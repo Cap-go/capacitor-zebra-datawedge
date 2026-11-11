@@ -167,6 +167,10 @@ Query correlation and payload validation do not guarantee sender authenticity. A
 
 Use opt-in `beginScanSession()`, `triggerScanSession()`, `renewScanSession()`, and `endScanSession()` for a finite scan flow. Automatic cleanup on cancel, pause, or a native deadline is best-effort and does not confirm scanner release, so await `endScanSession()` when the workflow finishes and before handing off to another scanner. Check native support with the read-only `getScanSessionCapabilities()` API. Existing low-level methods stay available if you manage DataWedge yourself. See [native scan sessions](docs/scan-sessions.md).
 
+## Validating multi-plugin configuration
+
+Use opt-in `setConfig({ completeResult: true, ... })` to require DataWedge success for every requested plugin rather than only its last result. Check native support with the read-only `getConfigurationCapabilities()` API when serving JS to older binaries. Existing calls retain their LAST_RESULT default. Validation does not roll back device configuration or establish scanner readiness; configure input disabled before a separate activation. See [complete configuration results](docs/complete-configuration-results.md).
+
 ## API
 
 <docgen-index>
@@ -185,6 +189,7 @@ Use opt-in `beginScanSession()`, `triggerScanSession()`, `renewScanSession()`, a
 - [`importConfig(...)`](#importconfig)
 - [`renameProfile(...)`](#renameprofile)
 - [`restoreConfig()`](#restoreconfig)
+- [`getConfigurationCapabilities()`](#getconfigurationcapabilities)
 - [`setConfig(...)`](#setconfig)
 - [`setDisabledAppList(...)`](#setdisabledapplist)
 - [`setIgnoreDisabledProfiles(...)`](#setignoredisabledprofiles)
@@ -432,11 +437,27 @@ restoreConfig() => Promise<void>
 
 ---
 
+### getConfigurationCapabilities()
+
+```typescript
+getConfigurationCapabilities() => Promise<{ completeConfigResults: boolean; }>
+```
+
+Read-only native configuration feature negotiation; sends no DataWedge command.
+
+**Returns:** <code>Promise&lt;{ completeConfigResults: boolean; }&gt;</code>
+
+---
+
 ### setConfig(...)
 
 ```typescript
 setConfig(options: SetConfigOptions) => Promise<void>
 ```
+
+Apply profile/plugin configuration. With completeResult true, require successful rows for every
+requested plugin before updating local intent-action registration. DataWedge changes are not rolled
+back on rejection; use input-disabled configuration followed by separately acknowledged activation.
 
 | Param         | Type                                                          |
 | ------------- | ------------------------------------------------------------- |
@@ -1027,9 +1048,10 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 
 | Prop                   | Type                                                                | Description                                                                                                                                                                                                                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`completeResult`**   | <code>boolean</code>                                                | Opt in to COMPLETE_RESULT validation of every requested plugin. Default false (LAST_RESULT). Requires a native binary with getConfigurationCapabilities().completeConfigResults. Rejection does not roll back DataWedge changes; configure input disabled before activation.                                  |
 | **`sessionId`**        | <code>string</code>                                                 | Matching active session token for an enrolled profile. Enrollment lasts for the process, including after end; begin a new session before configuring that profile again.                                                                                                                                      |
 | **`appList`**          | <code>DataWedgeAppConfig[]</code>                                   |                                                                                                                                                                                                                                                                                                               |
-| **`configMode`**       | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> |                                                                                                                                                                                                                                                                                                               |
+| **`configMode`**       | <code><a href="#datawedgeconfigmode">DataWedgeConfigMode</a></code> | DataWedge defaults to OVERWRITE when omitted, which resets an existing profile, including associations. Use UPDATE for incremental changes to an existing profile, especially during a scan session.                                                                                                          |
 | **`pluginConfigs`**    | <code>DataWedgePluginConfig[]</code>                                |                                                                                                                                                                                                                                                                                                               |
 | **`profileEnabled`**   | <code>boolean</code>                                                |                                                                                                                                                                                                                                                                                                               |
 | **`profileName`**      | <code>string</code>                                                 |                                                                                                                                                                                                                                                                                                               |

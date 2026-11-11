@@ -513,6 +513,11 @@ public class ZebraDataWedgePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getConfigurationCapabilities(PluginCall call) {
+        call.resolve(new JSObject().put("completeConfigResults", true));
+    }
+
+    @PluginMethod
     public synchronized void setConfig(PluginCall call) {
         String profileName = requiredString(call, "profileName");
         if (profileName == null) {
@@ -551,7 +556,13 @@ public class ZebraDataWedgePlugin extends Plugin {
             : null;
         Intent intent = ZebraDataWedge.newIntent();
         intent.putExtra(ZebraDataWedge.CMD_SET_CONFIG, config);
+        final boolean completeResult = Boolean.TRUE.equals(call.getBoolean("completeResult", false));
+        if (completeResult) intent.putExtra(ZebraDataWedge.EXTRA_SEND_RESULT, "COMPLETE_RESULT");
         sendCommand(call, intent, "set-config", (resultIntent) -> {
+            if (completeResult) {
+                String error = DataWedgeConfigResult.validate(resultIntent, pluginConfigs);
+                if (error != null) throw new ZebraDataWedgeException(error, "Incomplete or unsuccessful configuration results.");
+            }
             if (profileActions != null) {
                 applyProfileScanIntentActions(profileName, profileActions);
             }
@@ -1045,6 +1056,8 @@ public class ZebraDataWedgePlugin extends Plugin {
             }
             if (request != null) {
                 boolean failure = ZebraDataWedge.RESULT_FAILURE.equalsIgnoreCase(intent.getStringExtra(ZebraDataWedge.EXTRA_RESULT));
+                // A bare/late LAST_RESULT acknowledgement cannot satisfy COMPLETE_RESULT.
+                if (!failure && request.completeResult && !intent.hasExtra("RESULT_LIST")) return;
                 if (!failure && request.resultExtras.length > 0 && !request.hasQueryPayload(intent)) return;
                 if (!pendingRequests.remove(commandId, request)) return;
                 handler.removeCallbacks(request.timeoutRunnable);
@@ -1141,7 +1154,18 @@ public class ZebraDataWedgePlugin extends Plugin {
                 removed.call.reject("Timed out waiting for DataWedge response.", "DATAWEDGE_TIMEOUT");
             }
         };
-        pendingRequests.put(commandId, new PendingRequest(call, parser, timeout, queryResultExtras(intent), onFailure, sessionId));
+        pendingRequests.put(
+            commandId,
+            new PendingRequest(
+                call,
+                parser,
+                timeout,
+                queryResultExtras(intent),
+                onFailure,
+                sessionId,
+                "COMPLETE_RESULT".equals(intent.getStringExtra(ZebraDataWedge.EXTRA_SEND_RESULT))
+            )
+        );
         handler.postDelayed(timeout, REQUEST_TIMEOUT_MS);
         try {
             dispatchDataWedgeIntent(intent);
@@ -1572,6 +1596,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         final String[] resultExtras;
         final Runnable onFailure;
         final String sessionId;
+        final boolean completeResult;
 
         PendingRequest(
             PluginCall call,
@@ -1579,13 +1604,15 @@ public class ZebraDataWedgePlugin extends Plugin {
             Runnable timeoutRunnable,
             String[] resultExtras,
             Runnable onFailure,
-            String sessionId
+            String sessionId,
+            boolean completeResult
         ) {
             this.call = call;
             this.parser = parser;
             this.resultExtras = resultExtras;
             this.onFailure = onFailure;
             this.sessionId = sessionId;
+            this.completeResult = completeResult;
             this.timeoutRunnable = timeoutRunnable;
         }
 
