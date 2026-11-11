@@ -281,6 +281,32 @@ export interface ScanSessionState {
   remainingMs: number;
 }
 
+export interface DiagnosticsOptions {
+  /** Enable metadata tracing. Disabled by default; disabling does not erase previous entries. */
+  enabled: boolean;
+  /** Number of recent entries retained, from 1 to 1000. Initially 100; omitted values preserve the current capacity. */
+  maxEntries?: number;
+  /** Clear retained entries and reset elapsed time and dropped count. Default: false. */
+  reset?: boolean;
+}
+
+export interface DataWedgeDiagnosticsSnapshot {
+  diagnosticsVersion: number;
+  enabled: boolean;
+  maxEntries: number;
+  droppedEntries: number;
+  manufacturer: string;
+  model: string;
+  androidVersion: string;
+  /** notFound means Android could not find the package; it is not a service-permission check. */
+  dataWedgePackage: { status: 'installed' | 'notFound' | 'unavailable'; version?: string };
+  commands: {
+    commandIdentifier: string;
+    outcome: 'SENT' | 'SUCCESS' | 'FAILURE' | 'TIMEOUT' | 'TRANSPORT_ERROR' | 'CANCELLED' | 'INVALID_RESPONSE';
+    elapsedMs: number;
+  }[];
+}
+
 export interface ZebraDataWedgePlugin extends Plugin {
   /**
    * Read native session API capabilities without sending a DataWedge command.
@@ -323,6 +349,14 @@ export interface ZebraDataWedgePlugin extends Plugin {
    * still requires explicit end acknowledgement. No persistent process-death recovery is enabled.
    */
   endScanSession(options: { sessionId: string }): Promise<{ confirmed: boolean }>;
+  /** Configure opt-in native command metadata tracing. Never enables DataWedge or scanner input. */
+  configureDiagnostics(options: DiagnosticsOptions): Promise<void>;
+  /**
+   * Return a read-only native environment and trace snapshot. Does not send any DataWedge commands.
+   * Barcode values, intent bodies and arbitrary exception text are excluded. The application decides
+   * which device information to include when sharing this snapshot. Android only.
+   */
+  getDiagnostics(): Promise<DataWedgeDiagnosticsSnapshot>;
   cloneProfile(options: CloneProfileOptions): Promise<void>;
   createProfile(options: CreateProfileOptions): Promise<void>;
   deleteProfile(options: DeleteProfileOptions): Promise<void>;

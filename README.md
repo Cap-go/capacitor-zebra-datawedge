@@ -177,6 +177,8 @@ Use opt-in `beginScanSession()`, `triggerScanSession()`, `renewScanSession()`, a
 - [`getScanSessionState(...)`](#getscansessionstate)
 - [`triggerScanSession(...)`](#triggerscansession)
 - [`endScanSession(...)`](#endscansession)
+- [`configureDiagnostics(...)`](#configurediagnostics)
+- [`getDiagnostics()`](#getdiagnostics)
 - [`cloneProfile(...)`](#cloneprofile)
 - [`createProfile(...)`](#createprofile)
 - [`deleteProfile(...)`](#deleteprofile)
@@ -331,6 +333,34 @@ still requires explicit end acknowledgement. No persistent process-death recover
 | **`options`** | <code>{ sessionId: string; }</code> |
 
 **Returns:** <code>Promise&lt;{ confirmed: boolean; }&gt;</code>
+
+---
+
+### configureDiagnostics(...)
+
+```typescript
+configureDiagnostics(options: DiagnosticsOptions) => Promise<void>
+```
+
+Configure opt-in native command metadata tracing. Never enables DataWedge or scanner input.
+
+| Param         | Type                                                              |
+| ------------- | ----------------------------------------------------------------- |
+| **`options`** | <code><a href="#diagnosticsoptions">DiagnosticsOptions</a></code> |
+
+---
+
+### getDiagnostics()
+
+```typescript
+getDiagnostics() => Promise<DataWedgeDiagnosticsSnapshot>
+```
+
+Return a read-only native environment and trace snapshot. Does not send any DataWedge commands.
+Barcode values, intent bodies and arbitrary exception text are excluded. The application decides
+which device information to include when sharing this snapshot. Android only.
+
+**Returns:** <code>Promise&lt;<a href="#datawedgediagnosticssnapshot">DataWedgeDiagnosticsSnapshot</a>&gt;</code>
 
 ---
 
@@ -937,6 +967,28 @@ addListener(eventName: 'notification', listenerFunc: (event: ZebraNotificationEv
 | **`active`**      | <code>boolean</code>                                                                         |                                                                             |
 | **`reason`**      | <code>'ended' \| 'background' \| 'destroyed' \| 'heartbeat_expired' \| 'max_duration'</code> | Present after closure; does not mean cleanup was acknowledged by DataWedge. |
 | **`remainingMs`** | <code>number</code>                                                                          | Milliseconds until the earlier native deadline; zero when closing.          |
+
+#### DiagnosticsOptions
+
+| Prop             | Type                 | Description                                                                                                     |
+| ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **`enabled`**    | <code>boolean</code> | Enable metadata tracing. Disabled by default; disabling does not erase previous entries.                        |
+| **`maxEntries`** | <code>number</code>  | Number of recent entries retained, from 1 to 1000. Initially 100; omitted values preserve the current capacity. |
+| **`reset`**      | <code>boolean</code> | Clear retained entries and reset elapsed time and dropped count. Default: false.                                |
+
+#### DataWedgeDiagnosticsSnapshot
+
+| Prop                     | Type                                                                                                                                                                               | Description                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **`diagnosticsVersion`** | <code>number</code>                                                                                                                                                                |                                                                                          |
+| **`enabled`**            | <code>boolean</code>                                                                                                                                                               |                                                                                          |
+| **`maxEntries`**         | <code>number</code>                                                                                                                                                                |                                                                                          |
+| **`droppedEntries`**     | <code>number</code>                                                                                                                                                                |                                                                                          |
+| **`manufacturer`**       | <code>string</code>                                                                                                                                                                |                                                                                          |
+| **`model`**              | <code>string</code>                                                                                                                                                                |                                                                                          |
+| **`androidVersion`**     | <code>string</code>                                                                                                                                                                |                                                                                          |
+| **`dataWedgePackage`**   | <code>{ status: 'installed' \| 'notFound' \| 'unavailable'; version?: string; }</code>                                                                                             | notFound means Android could not find the package; it is not a service-permission check. |
+| **`commands`**           | <code>{ commandIdentifier: string; outcome: 'SENT' \| 'SUCCESS' \| 'FAILURE' \| 'TIMEOUT' \| 'TRANSPORT_ERROR' \| 'CANCELLED' \| 'INVALID_RESPONSE'; elapsedMs: number; }[]</code> |                                                                                          |
 
 #### CloneProfileOptions
 

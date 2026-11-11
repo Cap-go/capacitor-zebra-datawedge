@@ -5,6 +5,8 @@ import type {
   BeginScanSessionOptions,
   ScanSession,
   ScanSessionState,
+  DiagnosticsOptions,
+  DataWedgeDiagnosticsSnapshot,
   CreateProfileOptions,
   DataWedgeNotifyOptions,
   DataWedgeStatusResult,
@@ -53,6 +55,12 @@ export class ZebraDataWedgeWeb extends WebPlugin implements ZebraDataWedgePlugin
   }
   endScanSession(options: { sessionId: string }): Promise<{ confirmed: boolean }> {
     return unavailable(options);
+  }
+  configureDiagnostics(options: DiagnosticsOptions): Promise<void> {
+    return unavailable(options);
+  }
+  getDiagnostics(): Promise<DataWedgeDiagnosticsSnapshot> {
+    return unavailable();
   }
 
   cloneProfile(options: CloneProfileOptions): Promise<void> {

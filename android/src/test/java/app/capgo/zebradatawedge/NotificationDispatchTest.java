@@ -37,6 +37,11 @@ public class NotificationDispatchTest extends DataWedgeTestSupport {
             public void sendBroadcast(Intent intent) {
                 throw new IllegalStateException("fixture transport failure");
             }
+
+            @Override
+            public void sendOrderedBroadcast(Intent intent, String permission) {
+                throw new IllegalStateException("fixture transport failure");
+            }
         };
         for (boolean register : new boolean[] { true, false }) {
             Call call = new Call(new JSObject().put("notificationType", "SCANNER_STATUS"));

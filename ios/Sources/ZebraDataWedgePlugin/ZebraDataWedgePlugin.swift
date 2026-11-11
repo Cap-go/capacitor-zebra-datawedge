@@ -12,6 +12,8 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "triggerScanSession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "beginScanSession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getScanSessionCapabilities", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "configureDiagnostics", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getDiagnostics", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cloneProfile", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "createProfile", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "deleteProfile", returnType: CAPPluginReturnPromise),
@@ -63,6 +65,8 @@ public class ZebraDataWedgePlugin: CAPPlugin, CAPBridgedPlugin {
     @objc public func renewScanSession(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func getScanSessionState(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func endScanSession(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func configureDiagnostics(_ call: CAPPluginCall) { rejectUnavailable(call) }
+    @objc public func getDiagnostics(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func cloneProfile(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func createProfile(_ call: CAPPluginCall) { rejectUnavailable(call) }
     @objc public func deleteProfile(_ call: CAPPluginCall) { rejectUnavailable(call) }
