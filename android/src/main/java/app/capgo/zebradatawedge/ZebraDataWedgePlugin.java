@@ -145,7 +145,7 @@ public class ZebraDataWedgePlugin extends Plugin {
                     if (scanSession != session || !foreground || session.closing) {
                         throw new ZebraDataWedgeException("SESSION_CANCELLED", "Session was cancelled during discovery.");
                     }
-                    Bundle config = response.getBundleExtra(ZebraDataWedge.RESULT_GET_CONFIG);
+                    Bundle config = firstBundle(response, CONFIG_RESULTS);
                     ArrayList<Bundle> apps = config == null ? null : extractAppList(config);
                     boolean own = false;
                     if (apps != null && profile.equals(config.getString("PROFILE_NAME"))) {
@@ -343,7 +343,7 @@ public class ZebraDataWedgePlugin extends Plugin {
         if (session.deadline != null) handler.removeCallbacks(session.deadline);
         if (session.owned) {
             // A global STOP after pause could interrupt the newly foreground application's scanner.
-            if (foreground && session.triggered) {
+            if (firstClose && foreground && session.triggered) {
                 Intent stop = ZebraDataWedge.newIntent();
                 stop.putExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER, "STOP_SCANNING");
                 try {

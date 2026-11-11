@@ -301,6 +301,25 @@ describe('built-in session heartbeat', () => {
     expect(await explicit).toEqual({ confirmed: true });
   });
 
+  it.each([false, true])('rejects a second explicit end while cleanup is pending (automatic=%s)', async (automatic) => {
+    let acknowledge!: (value: { confirmed: boolean }) => void;
+    end.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          acknowledge = resolve;
+        }),
+    );
+    await plugin.beginScanSession({ profileName: 'Picking' });
+    if (automatic) windowEvents.dispatchEvent(new Event('pagehide'));
+    const first = plugin.endScanSession({ sessionId: 'one' });
+    await expect(plugin.endScanSession({ sessionId: 'one' })).rejects.toMatchObject({ code: 'SESSION_BUSY' });
+    await flush();
+    expect(end).toHaveBeenCalledTimes(1);
+    acknowledge({ confirmed: true });
+    expect(await first).toEqual({ confirmed: true });
+    expect(await plugin.endScanSession({ sessionId: 'one' })).toEqual({ confirmed: true });
+  });
+
   it('exposes a late cancelled token when cleanup fails so end remains retryable', async () => {
     let reply!: (value: ScanSession) => void;
     begin.mockImplementationOnce(

@@ -17,15 +17,23 @@ interface ManagedSession {
 /** Internal wrapper: ordinary consumers should only need begin/end, not a heartbeat loop. */
 export function withManagedScanSessions(native: ZebraDataWedgePlugin): ZebraDataWedgePlugin {
   let current: ManagedSession | undefined;
-  const pendingEnds = new Map<string, Promise<{ confirmed: boolean }>>();
+  const pendingEnds = new Map<string, { request: Promise<{ confirmed: boolean }>; explicit: boolean }>();
 
-  function finishNativeSession(sessionId: string): Promise<{ confirmed: boolean }> {
+  function finishNativeSession(sessionId: string, explicit = false): Promise<{ confirmed: boolean }> {
     const existing = pendingEnds.get(sessionId);
-    if (existing) return existing;
+    if (existing) {
+      if (explicit && existing.explicit) {
+        return Promise.reject(
+          Object.assign(new Error('Cleanup is already awaiting acknowledgement.'), { code: 'SESSION_BUSY' }),
+        );
+      }
+      if (explicit) existing.explicit = true;
+      return existing.request;
+    }
     const request = Promise.resolve().then(() => native.endScanSession({ sessionId }));
-    pendingEnds.set(sessionId, request);
+    pendingEnds.set(sessionId, { request, explicit });
     const settled = () => {
-      if (pendingEnds.get(sessionId) === request) pendingEnds.delete(sessionId);
+      if (pendingEnds.get(sessionId)?.request === request) pendingEnds.delete(sessionId);
     };
     // Attach both handlers without creating an ignored rejecting finally-promise.
     void request.then(settled, settled);
@@ -124,7 +132,7 @@ export function withManagedScanSessions(native: ZebraDataWedgePlugin): ZebraData
 
   const end = (options: { sessionId: string }) => {
     if (current?.session?.sessionId === options.sessionId) stop(current);
-    return finishNativeSession(options.sessionId);
+    return finishNativeSession(options.sessionId, true);
   };
 
   // Capacitor's registered plugin is itself a lazy proxy. Preserve every other method unchanged.

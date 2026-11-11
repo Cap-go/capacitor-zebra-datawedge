@@ -73,6 +73,27 @@ public class ScanSessionTest extends DataWedgeTestSupport {
     }
 
     @Test
+    public void ownershipDiscoveryAcceptsEverySupportedConfigAlias() {
+        for (String key : new String[] {
+            ZebraDataWedge.RESULT_GET_CONFIG,
+            "com.symbol.datawedge.api.GET_CONFIG_RESULT",
+            ZebraDataWedge.RESULT_GET_CONFIG_LEGACY
+        }) {
+            Call call = new Call(new JSObject().put("profileName", profile));
+            plugin.beginScanSession(call);
+            Bundle config = association(application.getPackageName()).getBundleExtra(ZebraDataWedge.RESULT_GET_CONFIG);
+            receiveCorrelated(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(key, config));
+            assertNull(call.error);
+            assertEquals(1, call.completions);
+            assertNotNull(call.result.getString("sessionId"));
+            Call end = token(call);
+            plugin.endScanSession(end);
+            receive(resultFor(lastBroadcast()));
+            assertTrue(end.result.optBoolean("confirmed"));
+        }
+    }
+
+    @Test
     public void foreignAssociationIsRejectedWithoutMutatingItsProfile() {
         Call call = new Call(new JSObject().put("profileName", profile));
         plugin.beginScanSession(call);
@@ -122,13 +143,24 @@ public class ScanSessionTest extends DataWedgeTestSupport {
     @Test
     public void pauseOnlyDisablesTheOwnedProfileAndKeepsTheLeaseUnconfirmed() {
         Call begun = begin(1000);
-        plugin.triggerScanSession(token(begun));
+        Call trigger = token(begun);
+        plugin.triggerScanSession(trigger);
+        receiveCorrelated(new Intent(ZebraDataWedge.RESULT_ACTION).putExtra(ZebraDataWedge.RESULT_GET_ACTIVE_PROFILE, profile));
+        assertEquals("START_SCANNING", lastBroadcast().getStringExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER));
+        receive(resultFor(lastBroadcast()));
+        assertNull(trigger.error);
         int count = broadcasts().size();
         plugin.pause();
         assertEquals(count + 1, broadcasts().size());
         assertTargetedDisable(lastBroadcast());
         plugin.resume();
+        assertEquals(count + 2, broadcasts().size());
         assertTargetedDisable(lastBroadcast());
+        assertFalse(
+            broadcasts()
+                .stream()
+                .anyMatch((intent) -> "STOP_SCANNING".equals(intent.getStringExtra(ZebraDataWedge.CMD_SOFT_SCAN_TRIGGER)))
+        );
         Call another = new Call(new JSObject().put("profileName", profile));
         plugin.beginScanSession(another);
         assertEquals("SESSION_BUSY", another.error);
@@ -173,9 +205,13 @@ public class ScanSessionTest extends DataWedgeTestSupport {
     public void wrongTokenCannotTriggerOrEndTheSession() {
         begin(1000);
         int count = broadcasts().size();
-        Call bad = new Call(new JSObject().put("sessionId", "not-the-owner"));
-        plugin.endScanSession(bad);
-        assertEquals("SESSION_INACTIVE", bad.error);
+        Call badTrigger = new Call(new JSObject().put("sessionId", "not-the-owner"));
+        plugin.triggerScanSession(badTrigger);
+        assertEquals("SESSION_INACTIVE", badTrigger.error);
+        assertEquals(count, broadcasts().size());
+        Call badEnd = new Call(new JSObject().put("sessionId", "not-the-owner"));
+        plugin.endScanSession(badEnd);
+        assertEquals("SESSION_INACTIVE", badEnd.error);
         assertEquals(count, broadcasts().size());
     }
 

@@ -170,7 +170,10 @@ export interface ReportingOptions {
 }
 
 export interface SetConfigOptions {
-  /** Required for profiles enrolled in an active opt-in native scan session. */
+  /**
+   * Matching active session token for an enrolled profile. Enrollment lasts for the process,
+   * including after end; begin a new session before configuring that profile again.
+   */
   sessionId?: string;
   appList?: DataWedgeAppConfig[];
   configMode?: DataWedgeConfigMode;
